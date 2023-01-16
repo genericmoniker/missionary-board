@@ -1,0 +1,54 @@
+[tool.pdm]
+[tool.pdm.dev-dependencies]
+dev = [
+    "black>=22.12.0",
+    "isort>=5.11.4",
+    "mypy>=0.991",
+    "pylint>=2.15.10",
+    "pytest>=7.2.1",
+    "pre-commit>=2.21.0",
+]
+
+[project]
+name = ""
+version = ""
+description = ""
+authors = [
+    {name = "Eric Smith", email = "eric@esmithy.net"},
+]
+dependencies = [
+    "starlette>=0.23.1",
+    "httpx>=0.23.3",
+    "jinja2>=3.1.2",
+    "uvicorn>=0.20.0",
+]
+requires-python = ">=3.10"
+license = {text = "MIT"}
+
+[tool.pdm.scripts]
+
+[tool.pdm.scripts.dev]
+cmd = "uvicorn --reload --app-dir src --log-config conf/uvicorn.logger.json mboard.main:app"
+help = "Run the web server with auto-reload"
+
+[tool.pdm.scripts.pre]
+cmd = "pre-commit run --all-files"
+help = "Run pre-commit checks on all files"
+
+[tool.pdm.scripts.test]
+cmd = "pytest"
+help = "Run the tests"
+
+[tool.isort]
+profile = "black"
+multi_line_output = 3
+
+[tool.pylint.messages_control]
+disable = """
+missing-function-docstring
+"""
+
+[tool.pytest.ini_options]
+# Allow tests to import application files by updating pythonpath. See:
+# https://docs.pytest.org/en/latest/explanation/goodpractices.html#choosing-a-test-layout-import-rules
+pythonpath = "src"
