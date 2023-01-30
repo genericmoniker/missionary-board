@@ -23,6 +23,8 @@ dependencies = [
     "uvicorn>=0.20.0",
     "sqlitedict>=2.1.0",
     "cryptography>=39.0.0",
+    "python-multipart>=0.0.5",
+    "aiogoogle>=5.1.0",
 ]
 requires-python = ">=3.10"
 license = {text = "MIT"}
@@ -37,6 +39,10 @@ help = "Run the web server with auto-reload"
 cmd = "pre-commit run --all-files"
 help = "Run pre-commit checks on all files"
 
+[tool.pdm.scripts.styles]
+cmd = "sass --style=compressed --no-source-map --update assets/styles.scss static/styles.css"
+help = "Build the styles.css file"
+
 [tool.pdm.scripts.test]
 cmd = "pytest"
 help = "Run the tests"
@@ -45,10 +51,16 @@ help = "Run the tests"
 profile = "black"
 multi_line_output = 3
 
+[tool.pylint.general]
+init-hook="import sys; sys.path.append('src')"
+
 [tool.pylint.messages_control]
 disable = """
 missing-function-docstring
 """
+
+[tool.pylint.basic]
+good-names = "db"
 
 [tool.pytest.ini_options]
 # Allow tests to import application files by updating pythonpath. See:
