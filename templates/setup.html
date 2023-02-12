@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+
+{% block title %}Missionary Board Setup{% endblock %}
+
+{% block content %}
+
+<div class="container" style="max-width: 600px">
+    <h1 class="title">Missionary Board Setup</h1>
+    <article class="message">
+        <div class="message-header">
+            Setup Required
+        </div>
+        <div class="message-body">
+            If this page isn't what you expected to see, please contact the administrator.
+        </div>
+    </article>
+    {% if setup_error %}
+    <article class="message is-danger">
+        <div class="message-header">
+            {{ setup_error }}
+        </div>
+        <div class="message-body">
+            {{ setup_error_description }}}
+        </div>
+    </article>
+    {% endif %}
+    <form action="" method="post">
+        <div class="field">
+            <label for="client_id" class="label">Client ID</label>
+            <div class="control">
+                <input type="text" id="client_id" name="client_id" value="{{ client_id }}" class="input" />
+            </div>
+            {% if client_id_error %}
+            <p class="help is-danger">{{ client_id_error }}</p>
+            {% endif %}
+        </div>
+
+        <div class="field">
+            <label for="client_secret" class="label">Client Secret</label>
+            <div class="control">
+                <input type="text" id="client_secret" name="client_secret" value="{{ client_secret
+                }}" class="input" />
+            </div>
+            {% if client_secret_error %}
+            <p class="help is-danger">{{ client_secret_error }}</p>
+            {% endif %}
+        </div>
+        <br />
+        <div class="control">
+            <button type="submit" class="button is-info">Submit</button>
+        </div>
+    </form>
+</div>
+{% endblock %}

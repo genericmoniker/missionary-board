@@ -10,7 +10,7 @@ from sqlitedict import SqliteDict  # type: ignore
 
 _logger = logging.getLogger(__name__)
 
-ROOT_DIR = Path(__file__).parent.parent
+ROOT_DIR = Path(__file__).parent.parent.parent
 
 
 class Database(SqliteDict):

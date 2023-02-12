@@ -25,6 +25,8 @@ dependencies = [
     "cryptography>=39.0.0",
     "python-multipart>=0.0.5",
     "aiogoogle>=5.1.0",
+    "Authlib>=1.2.0",
+    "argon2-cffi>=21.3.0",
 ]
 requires-python = ">=3.10"
 license = {text = "MIT"}
@@ -56,7 +58,8 @@ init-hook="import sys; sys.path.append('src')"
 
 [tool.pylint.messages_control]
 disable = """
-missing-function-docstring
+missing-function-docstring,
+too-few-public-methods,
 """
 
 [tool.pylint.basic]
@@ -66,3 +69,6 @@ good-names = "db"
 # Allow tests to import application files by updating pythonpath. See:
 # https://docs.pytest.org/en/latest/explanation/goodpractices.html#choosing-a-test-layout-import-rules
 pythonpath = "src"
+
+# Show slowest tests.
+addopts = "--durations=5"

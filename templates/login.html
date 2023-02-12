@@ -1,0 +1,99 @@
+{% extends 'base.html' %}
+
+{% block title %}Missionary Board Administrator Login{% endblock %}
+
+{% block content %}
+
+<div class="container" style="max-width: 600px">
+    <h1 class="title">Missionary Board Administrator Login</h1>
+
+    {% if success_message %}
+
+    <article class="message is-success">
+        <div class="message-header">
+            Success
+        </div>
+        <div class="message-body">
+            {{ success_message }}
+        </div>
+    </article>
+
+    {% endif %}
+
+    {% if login_error %}
+    <article class="message is-danger">
+        <div class="message-header">
+            There was a problem logging in
+        </div>
+        <div class="message-body">
+            {{ login_error }}}
+        </div>
+    </article>
+    {% endif %}
+
+    <form action="" method="post">
+
+        {% if admin_password_established %}
+
+        <div class="field">
+            <label for="username" class="label">Username</label>
+            <div class="control">
+                <input type="text" id="username" name="username" class="input" />
+            </div>
+            {% if username_error %}
+            <p class="help is-danger">{{ username_error }}</p>
+            {% endif %}
+        </div>
+
+        <div class="field">
+            <label for="password" class="label">Password</label>
+            <div class="control">
+                <input type="password" id="password" name="password" class="input" />
+            </div>
+            {% if password_error %}
+            <p class="help is-danger">{{ password_error }}</p>
+            {% endif %}
+        </div>
+
+        <br />
+
+        <div class="control">
+            <button type="submit" class="button is-info">Log In</button>
+        </div>
+
+        {% else %}
+        <p>Please set up a password for the "admin" user.</p>
+        <br />
+
+        <div class="field">
+            <label for="password" class="label">Password</label>
+            <div class="control">
+                <input type="password" id="password" name="password" class="input" />
+            </div>
+            {% if password_error %}
+            <p class="help is-danger">{{ password_error }}</p>
+            {% endif %}
+        </div>
+
+        <div class="field">
+            <label for="password_conf" class="label">Confirm password</label>
+            <div class="control">
+                <input type="password" id="password_conf" name="password_conf" class="input" />
+            </div>
+            {% if password_conf_error %}
+            <p class="help is-danger">{{ password_conf_error }}</p>
+            {% endif %}
+        </div>
+
+        <br />
+
+        <div class="control">
+            <button type="submit" class="button is-info">Set Password</button>
+        </div>
+
+        {% endif %}
+
+    </form>
+</div>
+
+{% endblock %}
