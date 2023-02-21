@@ -21,14 +21,14 @@ async def authorize(request: Request):
     db = request.app.state.db
     code = request.query_params.get("code")
     if code:
-        credentials = await google_photos.authorize(
+        token = await google_photos.authorize(
             client_id=db["client_id"],
             client_secret=db["client_secret"],
             state=db["state_secret"],
             redirect_uri=request.url_for("authorize"),
             authorization_code=code,
         )
-        print(credentials)  # need to save these
+        db["token"] = token
         return RedirectResponse(request.url_for("slides"))
 
     # Redirect back to the setup page, showing an error.
@@ -93,12 +93,3 @@ def _validate_auth_input(context: dict, client_id: str, client_secret: str):
         context["client_secret_error"] = "Client Secret is required."
         has_error = True
     return has_error
-
-
-def _get_client_creds(request: Request, db: Database):
-    return {
-        "client_id": db["client_id"],
-        "client_secret": db["client_secret"],
-        "scopes": ["https://www.googleapis.com/auth/photoslibrary.readonly"],
-        "redirect_uri": str(request.base_url) + "auth",
-    }

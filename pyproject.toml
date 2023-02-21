@@ -1,14 +1,3 @@
-[tool.pdm]
-[tool.pdm.dev-dependencies]
-dev = [
-    "black>=22.12.0",
-    "isort>=5.11.4",
-    "mypy>=0.991",
-    "pylint>=2.15.10",
-    "pytest>=7.2.1",
-    "pre-commit>=2.21.0",
-]
-
 [project]
 name = ""
 version = ""
@@ -30,6 +19,18 @@ dependencies = [
 ]
 requires-python = ">=3.10"
 license = {text = "MIT"}
+
+[tool.pdm]
+[tool.pdm.dev-dependencies]
+dev = [
+    "black>=22.12.0",
+    "isort>=5.11.4",
+    "mypy>=0.991",
+    "pylint>=2.15.10",
+    "pytest>=7.2.1",
+    "pre-commit>=2.21.0",
+    "pytest-asyncio>=0.20.3",
+]
 
 [tool.pdm.scripts]
 
@@ -63,7 +64,7 @@ too-few-public-methods,
 """
 
 [tool.pylint.basic]
-good-names = "db"
+good-names = "db, ex"
 
 [tool.pytest.ini_options]
 # Allow tests to import application files by updating pythonpath. See:

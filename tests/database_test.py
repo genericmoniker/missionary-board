@@ -1,6 +1,7 @@
 from datetime import datetime
 from cryptography.fernet import Fernet
 from mboard.database import Database
+from mboard.missionaries import Missionary
 
 
 def test_database_round_trip():
@@ -10,8 +11,10 @@ def test_database_round_trip():
         ("str", "Some text 🦸‍♀️"),
         ("list", [1, 2, 3, 4, 5, True, False]),
         ("dict", {"one": 1, "two": 2, "three": 3, "hero": "🦸‍♂️"}),
-        # And special handling for datetime:
+        # Special handling for datetime:
         ("now", datetime.now()),
+        # Special handling for dataclasses:
+        ("dataclass", Missionary("john.jpg", "123", "John Doe", "1st Ward")),
     ]
     for key, item in test_data:
         db[key] = item

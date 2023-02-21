@@ -414,6 +414,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "pytest-asyncio"
+version = "0.20.3"
+requires_python = ">=3.7"
+summary = "Pytest support for asyncio"
+dependencies = [
+    "pytest>=6.1.0",
+]
+
+[[package]]
 name = "python-multipart"
 version = "0.0.5"
 summary = "A streaming multipart parser for Python"
@@ -545,7 +554,7 @@ dependencies = [
 
 [metadata]
 lock_version = "4.1"
-content_hash = "sha256:4f66b7186b7faa053151ea2ea33c11e4578aa520cbf1f7ba15ca3705e7b5e507"
+content_hash = "sha256:138150018019d6b4f7e2cc7d19611d51aa560866c73eabf569b4f62e8ea824c9"
 
 [metadata.files]
 "aiofiles 22.1.0" = [
@@ -1188,6 +1197,10 @@ content_hash = "sha256:4f66b7186b7faa053151ea2ea33c11e4578aa520cbf1f7ba15ca3705e
 "pytest 7.2.1" = [
     {url = "https://files.pythonhosted.org/packages/cc/02/8f59bf194c9a1ceac6330850715e9ec11e21e2408a30a596c65d54cf4d2a/pytest-7.2.1-py3-none-any.whl", hash = "sha256:c7c6ca206e93355074ae32f7403e8ea12163b1163c976fee7d4d84027c162be5"},
     {url = "https://files.pythonhosted.org/packages/e5/6c/f3a15217ac72912c28c5d7a7a8e87ff6d6475c9530595ae9f0f8dedd8dd8/pytest-7.2.1.tar.gz", hash = "sha256:d45e0952f3727241918b8fd0f376f5ff6b301cc0777c6f9a556935c92d8a7d42"},
+]
+"pytest-asyncio 0.20.3" = [
+    {url = "https://files.pythonhosted.org/packages/45/74/9421cfde8def10c265b4f9ae19c95b8f4dc227f639cb8b89287d4946ac97/pytest_asyncio-0.20.3-py3-none-any.whl", hash = "sha256:f129998b209d04fcc65c96fc85c11e5316738358909a8399e93be553d7656442"},
+    {url = "https://files.pythonhosted.org/packages/6e/06/38b0ca5d53582bb49697626975b5540435ea064762d852b5c66646c729e9/pytest-asyncio-0.20.3.tar.gz", hash = "sha256:83cbf01169ce3e8eb71c6c278ccb0574d1a7a3bb8eaaf5e50e0ad342afb33b36"},
 ]
 "python-multipart 0.0.5" = [
     {url = "https://files.pythonhosted.org/packages/46/40/a933ac570bf7aad12a298fc53458115cc74053474a72fbb8201d7dc06d3d/python-multipart-0.0.5.tar.gz", hash = "sha256:f7bb5f611fc600d15fa47b3974c8aa16e93724513b49b5f95c81e6624c83fa43"},

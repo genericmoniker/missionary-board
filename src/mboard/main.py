@@ -1,7 +1,6 @@
 """Missionary Board main module."""
 
 from logging import getLogger
-from pathlib import Path
 
 from starlette.applications import Starlette
 
@@ -14,18 +13,16 @@ from starlette.staticfiles import StaticFiles
 
 from mboard.database import Database
 from mboard.login_page import login
+from mboard.logout_page import logout
+from mboard.paths import PHOTOS_DIR, ROOT_DIR
 from mboard.setup_page import authorize, setup
-from mboard.templates import templates
+from mboard.slides_page import slides
 
 _logger = getLogger(__name__)
 
 
 async def homepage(request):  # pylint: disable=unused-argument
     return PlainTextResponse("Hello, world!")
-
-
-async def slides(request):
-    return templates.TemplateResponse("slide.html", {"request": request})
 
 
 def create_app():
@@ -36,12 +33,14 @@ def create_app():
         # Middleware(AuthenticationMiddleware, ),
     ]
 
-    static_dir = Path(__file__).parent.parent.parent / "static"
+    static_dir = ROOT_DIR / "static"
+    photos_dir = PHOTOS_DIR
 
     routes = [
         Mount("/static", StaticFiles(directory=static_dir), name="static"),
+        Mount("/photos", StaticFiles(directory=photos_dir), name="photos"),
         Route("/login", login, methods=["GET", "POST"]),
-        Route("/logout", setup),  # Need to implement logout.
+        Route("/logout", logout, methods=["POST"]),
         Route("/setup", setup, methods=["GET", "POST"]),
         Route("/authorize", authorize),
         Route("/slides", slides),

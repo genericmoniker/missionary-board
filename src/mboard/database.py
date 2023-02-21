@@ -1,6 +1,8 @@
 """Persistence layer for mboard."""
+import importlib
 import json
 import logging
+from dataclasses import asdict, is_dataclass
 from datetime import datetime
 from pathlib import Path
 from sqlite3 import Binary
@@ -8,9 +10,9 @@ from sqlite3 import Binary
 from cryptography.fernet import Fernet
 from sqlitedict import SqliteDict  # type: ignore
 
-_logger = logging.getLogger(__name__)
+from mboard.paths import INSTANCE_DIR
 
-ROOT_DIR = Path(__file__).parent.parent.parent
+_logger = logging.getLogger(__name__)
 
 
 class Database(SqliteDict):
@@ -25,7 +27,7 @@ class Database(SqliteDict):
     """
 
     def __init__(self, filename=None, key=None):
-        data_dir = ROOT_DIR / "instance"
+        data_dir = INSTANCE_DIR
         self._key = key or self._init_key(data_dir)
         self._fernet = Fernet(self._key)
         super().__init__(
@@ -65,6 +67,13 @@ class _ExtendedEncoder(json.JSONEncoder):
         if hasattr(o, "isoformat"):
             return {"_dt_": o.isoformat()}
 
+        if is_dataclass(o):
+            dc_dict = asdict(o)
+            cls = o.__class__
+            dc_dict["_module_"] = cls.__module__
+            dc_dict["_class_"] = cls.__qualname__
+            return dc_dict
+
         return json.JSONEncoder.default(self, o)
 
 
@@ -80,6 +89,16 @@ class _ExtendedDecoder(json.JSONDecoder):
         if "_dt_" in obj:
             try:
                 return datetime.fromisoformat(obj["_dt_"])
-            except ValueError:
-                pass
+            except ValueError as ex:
+                raise ValueError(f"Couldn't deserialize datetime {obj['_dt_']}") from ex
+
+        if "_module_" in obj:
+            module_name = obj.pop("_module_")
+            class_name = obj.pop("_class_")
+            try:
+                module = importlib.import_module(module_name)
+                cls = getattr(module, class_name)
+                return cls(**obj)
+            except Exception as ex:
+                raise ValueError(f"Couldn't deserialize class {class_name}") from ex
         return obj

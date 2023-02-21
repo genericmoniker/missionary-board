@@ -4,37 +4,22 @@
 
 {% block content %}
 <div class="container">
+
+    {% for missionary in missionaries %}
+
     <div class="card">
         <div class="photo">
-            <img src="{{ url_for('static', path='/bear-smith-port.jpg') }}">
+            <img src="{{ url_for('photos', path=missionary.image_path) }}">
         </div>
         <div class="info">
-            <span class="name">Elder Bear Smith</span><br />
-            <span class="mission">Brazil São Paulo North Mission</span>
-            <span>September 2022 - September 2024</span>
+            <span class="name">{{missionary.name}}</span><br />
+            <span class="ward">{{missionary.ward}}</span><br />
+            <span class="mission">{{missionary.mission}}</span>
+            <span>{{missionary.start}} - {{missionary.end}}</span>
         </div>
     </div>
-    <div class="card">
-        <div class="photo">
-            <img src="{{ url_for('static', path='/bear-smith-sq.jpg') }}">
-        </div>
-        <div class="info">
-            <span class="name">Elder Bear Smith</span><br />
-            <span class="mission">Oregon Salem Mission</span>
-            <span>May 2020 - May 2022</span>
-        </div>
-    </div>
-    <div class="card">
-        <div class="photo">
-            <img src="{{ url_for('static', path='/bear-smith-land.jpg') }}">
-        </div>
-        <div class="info">
-            <span class="name">Elder Bear Smith</span><br />
-            <span class="mission">Europe Central Area FH Records Preservation Mission</span>
-        </div>
-    </div>
-    <div class="card">Four</div>
-    <div class="card">Five</div>
-    <div class="card">Six</div>
+
+    {% endfor %}
+
 </div>
 {% endblock %}
