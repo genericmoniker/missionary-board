@@ -42,8 +42,8 @@ async def slides(request: Request):
 async def _update_token(
     db: Database,
     token: dict,
-    _access_token: str | None = None,
-    _refresh_token: str | None = None,
+    access_token: str | None = None,  # pylint: disable=unused-argument
+    refresh_token: str | None = None,  # pylint: disable=unused-argument
 ):
     """Callback to update the token in the database when refreshed."""
     db["token"] = token
