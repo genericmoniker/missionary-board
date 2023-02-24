@@ -103,7 +103,7 @@ def test_missionary_data_parsed_from_media_item(tmp_path, media_item_description
     missionary = missionaries._parse_media_item(asdict(media_item))
 
     assert missionary.image_path == "abc.jpg"
-    assert missionary.image_id == "123"
+    assert missionary.image_base_url == "https://lh3.googleusercontent.com/abc"
     assert missionary.name == "Sister Jones"
     assert missionary.ward == "1st Ward"
     assert missionary.mission == "China Hong Kong Mission"
@@ -128,7 +128,7 @@ def test_missionary_data_silently_empty_if_not_specified(tmp_path):
     missionary = missionaries._parse_media_item(asdict(media_item))
 
     assert missionary.image_path == "abc.jpg"
-    assert missionary.image_id == "123"
+    assert missionary.image_base_url == "https://lh3.googleusercontent.com/abc"
     assert missionary.name == ""
     assert missionary.ward == ""
     assert missionary.mission == ""

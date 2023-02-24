@@ -6,7 +6,7 @@ from pathlib import Path
 from mboard.database import Database
 from mboard.google_photos import GooglePhotosClient
 
-REFRESH_INTERVAL = timedelta(minutes=10)
+REFRESH_INTERVAL = timedelta(minutes=2)
 
 
 @dataclass
@@ -14,7 +14,7 @@ class Missionary:
     """Missionary data."""
 
     image_path: str = ""
-    image_id: str = ""
+    image_base_url: str = ""
     name: str = ""
     ward: str = ""
     mission: str = ""
@@ -62,13 +62,16 @@ class Missionaries:
         for missionary in missionaries:
             image_path = self.image_dir / missionary.image_path
             if not image_path.exists():
-                image_data = await self.client.get_media_item_bytes(missionary.image_id)
+                image_data = await self.client.download(missionary.image_base_url)
                 image_path.write_bytes(image_data)
         # Maybe sort by last name?
         self.db["missionaries"] = missionaries
 
     def _parse_media_item(self, item):
-        data = {"image_path": item["filename"], "image_id": item["id"]}
+        data = {
+            "image_path": item["filename"],
+            "image_base_url": item["baseUrl"],
+        }
         description = item.get("description", "").strip()
         lines = description.splitlines()
         for line in lines:

@@ -115,11 +115,8 @@ class GooglePhotosClient:
     #     response.raise_for_status()
     #     return response.json()
 
-    async def get_media_item_bytes(self, media_item_id: str):
+    async def download(self, media_item_base_url: str):
         """Get the bytes of a media item."""
-        # https://developers.google.com/photos/library/reference/rest/v1/mediaItems/get
-        response = await self.client.get(
-            f"https://photoslibrary.googleapis.com/v1/mediaItems/{media_item_id}:getMedia"
-        )
+        response = await self.client.get(media_item_base_url)
         response.raise_for_status()
         return response.content
