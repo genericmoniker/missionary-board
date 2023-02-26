@@ -100,5 +100,7 @@ class _ExtendedDecoder(json.JSONDecoder):
                 cls = getattr(module, class_name)
                 return cls(**obj)
             except Exception as ex:
-                raise ValueError(f"Couldn't deserialize class {class_name}") from ex
+                raise ValueError(
+                    f"Couldn't deserialize class {module_name}.{class_name}"
+                ) from ex
         return obj

@@ -4,4 +4,7 @@ __pycache__
 
 .vscode
 
+.coverage
+
+/htmlcov/
 /instance/

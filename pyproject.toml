@@ -30,6 +30,8 @@ dev = [
     "pytest>=7.2.1",
     "pre-commit>=2.21.0",
     "pytest-asyncio>=0.20.3",
+    "mimesis>=7.0.0",
+    "pytest-cov>=4.0.0",
 ]
 
 [tool.pdm.scripts]
@@ -49,6 +51,14 @@ help = "Build the styles.css file"
 [tool.pdm.scripts.test]
 cmd = "pytest"
 help = "Run the tests"
+
+[tool.pdm.scripts.test-cov]
+composite = ["test --cov=src/mboard --cov-report=html", "_test-cov-srv"]
+help = "Run the tests with coverage and serve the report"
+
+[tool.pdm.scripts.test-cov-srv]
+cmd = "python -m http.server --bind 127.0.0.1 --directory htmlcov 8888"
+help = "Serve the coverage report"
 
 [tool.isort]
 profile = "black"
