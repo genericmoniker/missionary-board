@@ -1,5 +1,5 @@
 """Missionaries repository."""
-from dataclasses import dataclass, fields
+from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import List
@@ -17,10 +17,7 @@ class Missionary:
     image_path: str = ""
     image_base_url: str = ""
     name: str = ""
-    ward: str = ""
-    mission: str = ""
-    start: str = ""
-    end: str = ""
+    details: list[str] = field(default_factory=list)
 
 
 class Missionaries:
@@ -74,18 +71,19 @@ class Missionaries:
         data = {
             "image_path": item["filename"],
             "image_base_url": item["baseUrl"],
+            "name": "",
+            "details": [],
         }
-        valid_keys = [field.name for field in fields(Missionary)]
-        description = item.get("description", "").strip()
+        description = item.get("description", "")
         lines = description.splitlines()
         for line in lines:
-            try:
-                key, value = line.split(":", 1)
-            except ValueError:
+            line = line.strip()
+            if not line:
                 continue
-            key = key.strip().lower()
-            if key in valid_keys:
-                data[key] = value.strip()
+            if not data["name"]:
+                data["name"] = line
+                continue
+            data["details"].append(line)
         return Missionary(**data)
 
     async def _cache_images(self, missionaries: List[Missionary]) -> set:

@@ -97,7 +97,7 @@ async def test_refresh_updates_missionary_data(tmp_path):
     client = FakeGooglePhotosClient({}, lambda *_: None)
     album = Album()
     client.albums = [album]
-    media_item = MediaItem(description="name: Sister Kate Jones")
+    media_item = MediaItem(description="Sister Kate Jones")
     client.media_items = {album.id: [media_item]}
     missionaries = Missionaries(db, tmp_path, client)
 
@@ -143,29 +143,19 @@ async def test_refresh_cleans_up_old_images(tmp_path):
 @pytest.mark.parametrize(
     "media_item_description",
     [
+        # Whitespace variations...
         """
-        name: Sister Jones
-        mission: China Hong Kong Mission
-        ward: 1st Ward
-        start: March 2023
-        end: September 2024
+        Sister Jones
+        1st Ward
+        China Hong Kong Mission
+        March 2023 - September 2024
         """,
-        # Key names are case-insensitive:
-        """
-        Name:Sister Jones
-        Mission:China Hong Kong Mission
-        Ward:1st Ward
-        Start:March 2023
-        End:September 2024
+        """    Sister Jones
+        1st Ward
+        China Hong Kong Mission
+        March 2023 - September 2024
         """,
-        # Keys can be in any order:
-        """
-        end: September 2024
-        start: March 2023
-        ward: 1st Ward
-        mission: China Hong Kong Mission
-        name: Sister Jones
-        """,
+        "Sister Jones\n1st Ward\nChina Hong Kong Mission\nMarch 2023 - September 2024",
     ],
 )
 def test_missionary_data_parsed_from_media_item(tmp_path, media_item_description):
@@ -187,15 +177,14 @@ def test_missionary_data_parsed_from_media_item(tmp_path, media_item_description
     assert missionary.image_path == "abc.jpg"
     assert missionary.image_base_url == "https://lh3.googleusercontent.com/abc"
     assert missionary.name == "Sister Jones"
-    assert missionary.ward == "1st Ward"
-    assert missionary.mission == "China Hong Kong Mission"
-    assert missionary.start == "March 2023"
-    assert missionary.end == "September 2024"
+    assert missionary.details == [
+        "1st Ward",
+        "China Hong Kong Mission",
+        "March 2023 - September 2024",
+    ]
 
 
-@pytest.mark.parametrize(
-    "description", ["", " ", "To be: or not to be", "name:", "foo:", "foo"]
-)
+@pytest.mark.parametrize("description", ["", " ", " \n "])
 def test_missionary_data_silently_empty_if_not_specified(tmp_path, description):
     db = Database(":memory:")
     client = FakeGooglePhotosClient({}, lambda *_: None)
@@ -215,7 +204,4 @@ def test_missionary_data_silently_empty_if_not_specified(tmp_path, description):
     assert missionary.image_path == "abc.jpg"
     assert missionary.image_base_url == "https://lh3.googleusercontent.com/abc"
     assert missionary.name == ""
-    assert missionary.ward == ""
-    assert missionary.mission == ""
-    assert missionary.start == ""
-    assert missionary.end == ""
+    assert missionary.details == []
