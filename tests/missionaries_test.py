@@ -85,7 +85,9 @@ async def test_refresh_gets_new_missionary_data(tmp_path):
     await missionaries.refresh()
 
     assert client.get_albums_called
-    assert missionaries.list(0, 1)
+    missionaries_items, next_offset = missionaries.list(0, 1)
+    assert missionaries_items
+    assert next_offset == 0
     assert (tmp_path / media_item.filename).exists()
 
 
@@ -205,3 +207,28 @@ def test_missionary_data_silently_empty_if_not_specified(tmp_path, description):
     assert missionary.image_base_url == "https://lh3.googleusercontent.com/abc"
     assert missionary.name == ""
     assert missionary.details == []
+
+
+@pytest.mark.parametrize(
+    "count, offset, limit, expected_next_offset",
+    [
+        (0, 0, 1, 0),
+        (1, 0, 1, 0),
+        (2, 0, 1, 1),
+        (2, 1, 1, 0),
+        (5, 0, 4, 4),
+        (9, 4, 3, 7),
+    ],
+)
+def test_list_returns_the_correct_next_offset(
+    tmp_path, count, offset, limit, expected_next_offset
+):
+    db = Database(":memory:")
+    db["missionaries"] = [Missionary(name=f"Sister Jones {i}") for i in range(count)]
+    client = FakeGooglePhotosClient({}, lambda *_: None)
+    missionaries = Missionaries(db, tmp_path, client)
+
+    missionaries_items, next_offset = missionaries.list(offset, limit)
+
+    assert missionaries_items if count else not missionaries_items
+    assert next_offset == expected_next_offset

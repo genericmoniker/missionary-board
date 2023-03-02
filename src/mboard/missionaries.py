@@ -2,7 +2,7 @@
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import List
+from typing import List, Tuple
 
 from mboard.database import Database
 from mboard.google_photos import GooglePhotosClient
@@ -37,9 +37,10 @@ class Missionaries:
         await self._sync_missionaries()
         self.db["last_refresh"] = datetime.now()
 
-    def list(self, offset: int = 0, limit: int = 10):
+    def list(self, offset: int = 0, limit: int = 10) -> Tuple[List[Missionary], int]:
         missionaries = self.db.get("missionaries", [])
-        return missionaries[offset : offset + limit]
+        next_offset = offset + limit if offset + limit < len(missionaries) else 0
+        return missionaries[offset : offset + limit], next_offset
 
     def _needs_refresh(self):
         return (

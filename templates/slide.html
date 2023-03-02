@@ -6,15 +6,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Missionaries</title>
     <!-- <script src="script.js"></script> -->
+    <meta http-equiv="refresh" content="30; url={{ next_url }}">
     {% if missionaries|length == 0 %}
-    <meta http-equiv="refresh" content="30">
     <link href="{{ url_for('static', path='/styles.css') }}" rel="stylesheet">
     {% else %}
     <link href="{{ url_for('static', path='/slide.css') }}" rel="stylesheet">
     {% endif %}
 </head>
 
-<body>
+<body id="body" class="fadein">
     <section class="section">
         <div class="container">
             {% if missionaries|length == 0 %}
@@ -51,5 +51,11 @@
         </div>
     </section>
 </body>
+
+<script>
+    window.onbeforeunload = function (e) {
+        document.getElementById('body').className = 'fadeout';
+    }
+</script>
 
 </html>

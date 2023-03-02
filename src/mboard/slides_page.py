@@ -26,11 +26,10 @@ async def slides(request: Request):
         db["token"], update_token, db["client_id"], db["client_secret"]
     )
     missionaries_repo = Missionaries(db, PHOTOS_DIR, client)
-    missionaries = missionaries_repo.list(offset, limit)
+    missionaries, offset = missionaries_repo.list(offset, limit)
     context = {
         "request": request,
-        "next_offset": offset + limit if len(missionaries) == limit else 0,
-        "next_limit": PAGE_SIZE,
+        "next_url": f"{request.url_for('slides')}?offset={offset}&limit={PAGE_SIZE}",
         "missionaries": missionaries,
     }
 
