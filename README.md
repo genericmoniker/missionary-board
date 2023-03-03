@@ -1,5 +1,7 @@
 # Missionary Board
 
+A very-much-work-in-progress digital missionary board.
+
 ## Set up
 
 ## Development
