@@ -3,7 +3,7 @@
 Much of this is (as always) setting up OAuth2 authentication.
 """
 from starlette.requests import Request
-from starlette.responses import RedirectResponse
+from starlette.responses import RedirectResponse, Response
 
 from mboard import google_photos
 from mboard.database import Database
@@ -12,13 +12,13 @@ from mboard.templates import templates
 
 
 @login_required
-async def setup(request: Request):
+async def setup(request: Request) -> Response:
     if request.method == "GET":
         return _setup_get(request, request.app.state.db)
     return await _setup_post(request, request.app.state.db)
 
 
-async def authorize(request: Request):
+async def authorize(request: Request) -> RedirectResponse:
     """Route for the OAuth2 callback that Google will call."""
     db = request.app.state.db
     code = request.query_params.get("code")
@@ -36,14 +36,15 @@ async def authorize(request: Request):
     # Redirect back to the setup page, showing an error.
     error = request.query_params.get("error", "Error")
     error_description = request.query_params.get(
-        "error_description", "Sorry, something unexpected happened."
+        "error_description",
+        "Sorry, something unexpected happened.",
     )
     db["setup_error"] = error
     db["setup_error_description"] = error_description
     return RedirectResponse(request.url_for("setup"))
 
 
-def _setup_get(request: Request, db: Database):
+def _setup_get(request: Request, db: Database) -> Response:
     context = {
         "request": request,
         "client_id": db.get("client_id", ""),
@@ -59,7 +60,7 @@ def _setup_get(request: Request, db: Database):
     return templates.TemplateResponse("setup.html", context)
 
 
-async def _setup_post(request: Request, db: Database):
+async def _setup_post(request: Request, db: Database) -> Response:
     form_data = await request.form()
     client_id = str(form_data.get("client_id", "")).strip()
     client_secret = str(form_data.get("client_secret", "")).strip()
@@ -86,7 +87,7 @@ async def _setup_post(request: Request, db: Database):
     return RedirectResponse(auth_url, status_code=303)
 
 
-def _validate_auth_input(context: dict, client_id: str, client_secret: str):
+def _validate_auth_input(context: dict, client_id: str, client_secret: str) -> bool:
     has_error = False
     if not client_id:
         context["client_id_error"] = "Client ID is required."

@@ -26,7 +26,14 @@ class Database(SqliteDict):
     well-obfuscated using Fernet symmetric encryption.
     """
 
-    def __init__(self, filename=None, key=None):
+    def __init__(self, filename: str | None = None, key: str | None = None) -> None:
+        """Initialize the database.
+
+        The `key` argument is used to encrypt the database. If not provided, a new key
+        will be generated and stored in the data directory.
+
+        See SqliteDict for more details.
+        """
         data_dir = INSTANCE_DIR
         self._key = key or self._init_key(data_dir)
         self._fernet = Fernet(self._key)
@@ -35,7 +42,7 @@ class Database(SqliteDict):
             tablename="mboard",
             autocommit=True,
             encode=self._encrypted_json_encoder,
-            decode=self._encrypted_json_decoder,
+            decode=self._encrypted_json_decoder,  # type: ignore
         )
 
     @staticmethod
@@ -63,9 +70,9 @@ class Database(SqliteDict):
 class _ExtendedEncoder(json.JSONEncoder):
     """JSON encoder that handles additional object types."""
 
-    def default(self, o):
+    def default(self, o: object) -> object | None:
         if hasattr(o, "isoformat"):
-            return {"_dt_": o.isoformat()}
+            return {"_dt_": o.isoformat()}  # type: ignore
 
         if is_dataclass(o):
             dc_dict = asdict(o)
@@ -85,12 +92,13 @@ class _ExtendedDecoder(json.JSONDecoder):
         super().__init__(*args, **kwargs)
 
     @staticmethod
-    def _object_hook(obj):
+    def _object_hook(obj: dict) -> object | dict:
         if "_dt_" in obj:
             try:
                 return datetime.fromisoformat(obj["_dt_"])
             except ValueError as ex:
-                raise ValueError(f"Couldn't deserialize datetime {obj['_dt_']}") from ex
+                msg = f"Couldn't deserialize datetime {obj['_dt_']}"
+                raise ValueError(msg) from ex
 
         if "_module_" in obj:
             module_name = obj.pop("_module_")
@@ -99,8 +107,7 @@ class _ExtendedDecoder(json.JSONDecoder):
                 module = importlib.import_module(module_name)
                 cls = getattr(module, class_name)
                 return cls(**obj)
-            except Exception as ex:
-                raise ValueError(
-                    f"Couldn't deserialize class {module_name}.{class_name}"
-                ) from ex
+            except Exception as ex:  # noqa: BLE001
+                msg = f"Couldn't deserialize class {module_name}.{class_name}"
+                raise ValueError(msg) from ex
         return obj

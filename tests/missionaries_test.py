@@ -1,5 +1,5 @@
 from dataclasses import asdict, dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Callable
 import pytest
 from mimesis import Generic
@@ -61,7 +61,7 @@ class MediaItem:
 
 @pytest.mark.asyncio
 async def test_refresh_skipped_if_not_needed(tmp_path, db):
-    db["last_refresh"] = datetime.now()
+    db["last_refresh"] = datetime.now(tz=timezone.utc)
     client = FakeGooglePhotosClient({}, lambda *_: None)
     missionaries = Missionaries(db, tmp_path, client)
 
@@ -72,7 +72,7 @@ async def test_refresh_skipped_if_not_needed(tmp_path, db):
 
 @pytest.mark.asyncio
 async def test_refresh_gets_new_missionary_data(tmp_path, db):
-    db["last_refresh"] = datetime.min
+    db["last_refresh"] = datetime.min.replace(tzinfo=timezone.utc)
     client = FakeGooglePhotosClient({}, lambda *_: None)
     album = Album()
     client.albums = [album]
@@ -83,7 +83,7 @@ async def test_refresh_gets_new_missionary_data(tmp_path, db):
     await missionaries.refresh()
 
     assert client.get_albums_called
-    missionaries_items, next_offset = missionaries.list(0, 1)
+    missionaries_items, next_offset = missionaries.list_range(0, 1)
     assert missionaries_items
     assert next_offset == 0
     assert (tmp_path / media_item.filename).exists()
@@ -91,7 +91,7 @@ async def test_refresh_gets_new_missionary_data(tmp_path, db):
 
 @pytest.mark.asyncio
 async def test_refresh_updates_missionary_data(tmp_path, db):
-    db["last_refresh"] = datetime.min
+    db["last_refresh"] = datetime.min.replace(tzinfo=timezone.utc)
     db["missionaries"] = [Missionary(name="Sister Jones")]
     client = FakeGooglePhotosClient({}, lambda *_: None)
     album = Album()
@@ -107,7 +107,7 @@ async def test_refresh_updates_missionary_data(tmp_path, db):
 
 @pytest.mark.asyncio
 async def test_refresh_does_not_download_already_cached_image(tmp_path, db):
-    db["last_refresh"] = datetime.min
+    db["last_refresh"] = datetime.min.replace(tzinfo=timezone.utc)
     client = FakeGooglePhotosClient({}, lambda *_: None)
     album = Album()
     client.albums = [album]
@@ -123,7 +123,7 @@ async def test_refresh_does_not_download_already_cached_image(tmp_path, db):
 
 @pytest.mark.asyncio
 async def test_refresh_cleans_up_old_images(tmp_path, db):
-    db["last_refresh"] = datetime.min
+    db["last_refresh"] = datetime.min.replace(tzinfo=timezone.utc)
     client = FakeGooglePhotosClient({}, lambda *_: None)
     album = Album()
     client.albums = [album]
@@ -220,7 +220,7 @@ def test_list_returns_the_correct_next_offset(
     client = FakeGooglePhotosClient({}, lambda *_: None)
     missionaries = Missionaries(db, tmp_path, client)
 
-    missionaries_items, next_offset = missionaries.list(offset, limit)
+    missionaries_items, next_offset = missionaries.list_range(offset, limit)
 
     assert missionaries_items if count else not missionaries_items
     assert next_offset == expected_next_offset

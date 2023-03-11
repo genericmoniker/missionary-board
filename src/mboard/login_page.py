@@ -2,7 +2,7 @@
 import argon2
 from starlette.datastructures import FormData
 from starlette.requests import Request
-from starlette.responses import RedirectResponse
+from starlette.responses import RedirectResponse, Response
 
 from mboard.database import Database
 from mboard.templates import templates
@@ -10,13 +10,13 @@ from mboard.templates import templates
 _password_hasher = argon2.PasswordHasher()
 
 
-async def login(request: Request):
+async def login(request: Request) -> Response:
     if request.method == "GET":
         return _login_get(request, request.app.state.db)
     return await _login_post(request, request.app.state.db)
 
 
-def _login_get(request: Request, db: Database):
+def _login_get(request: Request, db: Database) -> Response:
     context = {
         "request": request,
         "admin_password_established": _admin_password_established(db),
@@ -24,7 +24,7 @@ def _login_get(request: Request, db: Database):
     return templates.TemplateResponse("login.html", context)
 
 
-async def _login_post(request: Request, db: Database):
+async def _login_post(request: Request, db: Database) -> Response:
     form_data = await request.form()
     context = {
         "request": request,
@@ -56,7 +56,11 @@ def _establish_admin_password(form_data: FormData, db: Database, context: dict) 
         ] = "Admin password set successfully. You can now log in."
 
 
-def _validate_admin_password_input(context, password, password_conf) -> bool:
+def _validate_admin_password_input(
+    context: dict,
+    password: str,
+    password_conf: str,
+) -> bool:
     has_error = False
     if not password:
         context["password_error"] = "Password is required."
@@ -103,7 +107,7 @@ def _login(form_data: FormData, db: Database, context: dict) -> bool:
     return True
 
 
-def _validate_login_input(context, username: str, password: str):
+def _validate_login_input(context: dict, username: str, password: str) -> bool:
     has_error = False
     if not username:
         context["username_error"] = "Username is required."
@@ -114,5 +118,5 @@ def _validate_login_input(context, username: str, password: str):
     return has_error
 
 
-def _admin_password_established(db: Database):
+def _admin_password_established(db: Database) -> bool:
     return bool(db.get("admin_password_hash"))

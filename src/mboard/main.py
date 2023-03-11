@@ -7,7 +7,6 @@ from secrets import token_hex
 from starlette.applications import Starlette
 from starlette.middleware import Middleware
 from starlette.middleware.sessions import SessionMiddleware
-from starlette.responses import PlainTextResponse
 from starlette.routing import Mount, Route
 from starlette.staticfiles import StaticFiles
 
@@ -21,11 +20,7 @@ from mboard.slides_page import slides
 _logger = getLogger(__name__)
 
 
-async def homepage(request):  # pylint: disable=unused-argument
-    return PlainTextResponse("Hello, world!")
-
-
-def create_app():
+def create_app() -> Starlette:
     db = Database()
 
     secret_key = db.get("secret_key")
@@ -55,8 +50,7 @@ def create_app():
         Route("/logout", logout, methods=["POST"]),
         Route("/setup", setup, methods=["GET", "POST"]),
         Route("/authorize", authorize),
-        Route("/slides", slides),
-        Route("/", homepage),
+        Route("/", slides),
     ]
 
     starlette = Starlette(debug=True, routes=routes, middleware=middleware)
