@@ -7,9 +7,11 @@ from starlette.responses import RedirectResponse
 
 from mboard import google_photos
 from mboard.database import Database
+from mboard.login_required import login_required
 from mboard.templates import templates
 
 
+@login_required
 async def setup(request: Request):
     if request.method == "GET":
         return _setup_get(request, request.app.state.db)

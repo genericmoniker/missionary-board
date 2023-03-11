@@ -14,7 +14,7 @@ def test_database_round_trip():
         # Special handling for datetime:
         ("now", datetime.now()),
         # Special handling for dataclasses:
-        ("dataclass", Missionary("john.jpg", "123", "John Doe", "1st Ward")),
+        ("dataclass", Missionary("john.jpg", "123", "John Doe", ["1st Ward"])),
     ]
     for key, item in test_data:
         db[key] = item

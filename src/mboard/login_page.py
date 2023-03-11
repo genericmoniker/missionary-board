@@ -1,6 +1,5 @@
 """Login page, including setup of the admin password."""
 import argon2
-from starlette.authentication import AuthenticationBackend
 from starlette.datastructures import FormData
 from starlette.requests import Request
 from starlette.responses import RedirectResponse
@@ -38,10 +37,7 @@ async def _login_post(request: Request, db: Database):
     if not _login(form_data, db, context):
         return templates.TemplateResponse("login.html", context)
 
-    # On successful login, I'm supposed to set something in the session (cookie) that
-    # the AuthenticationMiddleware will pick up and use to set request.user. Not sure
-    # exactly how to do that yet.
-    # https://github.com/encode/starlette/issues/771#issuecomment-1227374718
+    request.session["user"] = "admin"
 
     # The only interesting page requiring authentication is the setup page.
     return RedirectResponse(request.url_for("setup"), status_code=303)
@@ -120,10 +116,3 @@ def _validate_login_input(context, username: str, password: str):
 
 def _admin_password_established(db: Database):
     return bool(db.get("admin_password_hash"))
-
-
-class SessionCookieAuthBackend(AuthenticationBackend):
-    """Something like this..."""
-
-    async def authenticate(self, conn):
-        pass

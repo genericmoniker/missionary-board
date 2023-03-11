@@ -1,12 +1,12 @@
 """Missionary Board main module."""
 
+from datetime import timedelta
 from logging import getLogger
+from secrets import token_hex
 
 from starlette.applications import Starlette
-
-# from starlette.middleware import Middleware
-# from starlette.middleware.authentication import AuthenticationMiddleware
-# from starlette.middleware.sessions import SessionMiddleware
+from starlette.middleware import Middleware
+from starlette.middleware.sessions import SessionMiddleware
 from starlette.responses import PlainTextResponse
 from starlette.routing import Mount, Route
 from starlette.staticfiles import StaticFiles
@@ -28,9 +28,21 @@ async def homepage(request):  # pylint: disable=unused-argument
 def create_app():
     db = Database()
 
+    secret_key = db.get("secret_key")
+    if not secret_key:
+        _logger.info("Generating new secret key")
+        secret_key = token_hex()
+        db["secret_key"] = secret_key
+
+    max_session_age = int(timedelta(minutes=30).total_seconds())
+
     middleware = [
-        # Middleware(SessionMiddleware, ),
-        # Middleware(AuthenticationMiddleware, ),
+        Middleware(
+            SessionMiddleware,
+            secret_key=secret_key,
+            max_age=max_session_age,
+            same_site="strict",
+        ),
     ]
 
     static_dir = ROOT_DIR / "static"

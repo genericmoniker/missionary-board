@@ -60,8 +60,7 @@ class MediaItem:
 
 
 @pytest.mark.asyncio
-async def test_refresh_skipped_if_not_needed(tmp_path):
-    db = Database(":memory:")
+async def test_refresh_skipped_if_not_needed(tmp_path, db):
     db["last_refresh"] = datetime.now()
     client = FakeGooglePhotosClient({}, lambda *_: None)
     missionaries = Missionaries(db, tmp_path, client)
@@ -72,8 +71,7 @@ async def test_refresh_skipped_if_not_needed(tmp_path):
 
 
 @pytest.mark.asyncio
-async def test_refresh_gets_new_missionary_data(tmp_path):
-    db = Database(":memory:")
+async def test_refresh_gets_new_missionary_data(tmp_path, db):
     db["last_refresh"] = datetime.min
     client = FakeGooglePhotosClient({}, lambda *_: None)
     album = Album()
@@ -92,8 +90,7 @@ async def test_refresh_gets_new_missionary_data(tmp_path):
 
 
 @pytest.mark.asyncio
-async def test_refresh_updates_missionary_data(tmp_path):
-    db = Database(":memory:")
+async def test_refresh_updates_missionary_data(tmp_path, db):
     db["last_refresh"] = datetime.min
     db["missionaries"] = [Missionary(name="Sister Jones")]
     client = FakeGooglePhotosClient({}, lambda *_: None)
@@ -109,8 +106,7 @@ async def test_refresh_updates_missionary_data(tmp_path):
 
 
 @pytest.mark.asyncio
-async def test_refresh_does_not_download_already_cached_image(tmp_path):
-    db = Database(":memory:")
+async def test_refresh_does_not_download_already_cached_image(tmp_path, db):
     db["last_refresh"] = datetime.min
     client = FakeGooglePhotosClient({}, lambda *_: None)
     album = Album()
@@ -126,8 +122,7 @@ async def test_refresh_does_not_download_already_cached_image(tmp_path):
 
 
 @pytest.mark.asyncio
-async def test_refresh_cleans_up_old_images(tmp_path):
-    db = Database(":memory:")
+async def test_refresh_cleans_up_old_images(tmp_path, db):
     db["last_refresh"] = datetime.min
     client = FakeGooglePhotosClient({}, lambda *_: None)
     album = Album()
@@ -160,8 +155,7 @@ async def test_refresh_cleans_up_old_images(tmp_path):
         "Sister Jones\n1st Ward\nChina Hong Kong Mission\nMarch 2023 - September 2024",
     ],
 )
-def test_missionary_data_parsed_from_media_item(tmp_path, media_item_description):
-    db = Database(":memory:")
+def test_missionary_data_parsed_from_media_item(tmp_path, media_item_description, db):
     client = FakeGooglePhotosClient({}, lambda *_: None)
     missionaries = Missionaries(db, tmp_path, client)
 
@@ -187,8 +181,7 @@ def test_missionary_data_parsed_from_media_item(tmp_path, media_item_description
 
 
 @pytest.mark.parametrize("description", ["", " ", " \n "])
-def test_missionary_data_silently_empty_if_not_specified(tmp_path, description):
-    db = Database(":memory:")
+def test_missionary_data_silently_empty_if_not_specified(tmp_path, description, db):
     client = FakeGooglePhotosClient({}, lambda *_: None)
     missionaries = Missionaries(db, tmp_path, client)
 
@@ -221,9 +214,8 @@ def test_missionary_data_silently_empty_if_not_specified(tmp_path, description):
     ],
 )
 def test_list_returns_the_correct_next_offset(
-    tmp_path, count, offset, limit, expected_next_offset
+    tmp_path, count, offset, limit, expected_next_offset, db
 ):
-    db = Database(":memory:")
     db["missionaries"] = [Missionary(name=f"Sister Jones {i}") for i in range(count)]
     client = FakeGooglePhotosClient({}, lambda *_: None)
     missionaries = Missionaries(db, tmp_path, client)
