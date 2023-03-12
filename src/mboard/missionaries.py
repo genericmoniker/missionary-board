@@ -81,8 +81,7 @@ class Missionaries:
     async def _load_missionaries(self, album: dict) -> list[Missionary]:
         media_items = await self.client.get_media_items(album["id"])
         missionaries = [self._parse_media_item(item) for item in media_items]
-        # Maybe sort by last name?
-        return missionaries
+        return sorted(missionaries, key=self._sort_key)
 
     def _parse_media_item(self, item: dict) -> Missionary:
         data = {
@@ -102,6 +101,14 @@ class Missionaries:
                 continue
             data["details"].append(line)
         return Missionary(**data)
+
+    def _sort_key(self, missionary: Missionary) -> tuple[str, str]:
+        names = missionary.name.split()
+        if len(names) > 1:
+            return (names[-1], names[-2])
+        if names:
+            return (names[-1], "")
+        return ("", "")
 
     async def _cache_images(self, missionaries: list[Missionary]) -> set:
         current_image_paths = set()

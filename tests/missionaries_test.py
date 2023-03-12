@@ -137,6 +137,39 @@ async def test_refresh_cleans_up_old_images(tmp_path, db):
     assert not (tmp_path / "old.jpg").exists()
 
 
+@pytest.mark.asyncio
+async def test_missionaries_sorted_by_last_name(tmp_path, db):
+    db["last_refresh"] = datetime.min.replace(tzinfo=timezone.utc)
+    client = FakeGooglePhotosClient({}, lambda *_: None)
+    album = Album()
+    client.albums = [album]
+    client.media_items = {
+        album.id: [
+            MediaItem(description="Elder Victor Bravo"),
+            MediaItem(description="Sister Zoe Anderson"),
+            MediaItem(description="Sister Amanda Evans-Clinton"),
+            MediaItem(description="Elder Ben Smith"),
+            MediaItem(description="Elder Adam Smith"),
+            MediaItem(description="Nephi"),
+            MediaItem(description="Elder Charlie & Sister Brava Delta"),
+            MediaItem(description=""),
+        ]
+    }
+    missionaries = Missionaries(db, tmp_path, client)
+
+    await missionaries.refresh()
+    listed_range, _ = missionaries.list_range(0, 10)
+
+    assert listed_range[0].name == ""
+    assert listed_range[1].name == "Sister Zoe Anderson"
+    assert listed_range[2].name == "Elder Victor Bravo"
+    assert listed_range[3].name == "Elder Charlie & Sister Brava Delta"
+    assert listed_range[4].name == "Sister Amanda Evans-Clinton"
+    assert listed_range[5].name == "Nephi"
+    assert listed_range[6].name == "Elder Adam Smith"
+    assert listed_range[7].name == "Elder Ben Smith"
+
+
 @pytest.mark.parametrize(
     "media_item_description",
     [
