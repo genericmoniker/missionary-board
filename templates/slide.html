@@ -17,6 +17,11 @@
 <body id="body" class="fadein">
     <section class="section">
         <div class="container">
+            <div id="setup">
+                <a href="{{ url_for('setup') }}">
+                    <img src="{{ url_for('static', path='/cog.svg') }}" alt="setup">
+                </a>
+            </div>
             {% if missionaries|length == 0 %}
             <section class="hero is-primary">
                 <div class="hero-body">

@@ -5,5 +5,5 @@ from starlette.responses import RedirectResponse
 
 async def logout(request: Request) -> RedirectResponse:
     """Log out."""
-    request.session.pop("user_id", None)
-    return RedirectResponse(request.url_for("login"))
+    request.session.pop("user", None)
+    return RedirectResponse(request.url_for("login"), status_code=303)

@@ -1,3 +1,12 @@
 @import "./slate-variables.scss";
 @import "./bulma/bulma.sass";
 @import "./slate-overrides.scss";
+
+// Icon like those from https://pictogrammers.com, which by default are black
+// and large. This makes them light gray and small.
+.icon {
+  filter: invert(80%);
+  size: 5%;
+  position: relative;
+  top: 0.4em;
+}

@@ -13,6 +13,23 @@
 
 <body>
     <section class="section">
+        <container class="container">
+            <a href="{{ url_for('slides') }}">
+                <img class="icon" src="{{ url_for('static', path='/account-box-multiple.svg') }}" alt="slide show" class="logo">
+                Slide Show
+            </a>
+            </span>
+            {% if request.session.get("user") %}
+            &nbsp; <a href="#" onclick="document.getElementById('logout').submit()">
+                <img class="icon" src="{{ url_for('static', path='/logout.svg') }}" alt="logo" class="logo">
+                Logout
+            </a>
+            </span>
+            <form id="logout" action="{{ url_for('logout') }}" method="post"></form>
+            {% endif %}
+        </container>
+    </section>
+    <section class="section">
         <div class="container">
             {% block content %}{% endblock %}
         </div>
