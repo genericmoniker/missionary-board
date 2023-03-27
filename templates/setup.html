@@ -6,16 +6,62 @@
 
 <div class="container" style="max-width: 600px">
     <h1 class="title">Missionary Board Setup</h1>
-    {% if setup_error %}
-    <article class="message is-danger">
-        <div class="message-header">
-            {{ setup_error }}
+
+    <div class="block">
+        {% if setup_error %}
+        <article class="message is-danger">
+            <div class="message-header">
+                {{ setup_error }}
+            </div>
+            <div class="message-body">
+                {{ setup_error_description }}
+            </div>
+        </article>
+        {% endif %}
+    </div>
+
+    <div class="block">
+        <div class="accordion">
+            <input type="checkbox" id="accordion-toggle" class="accordion-toggle">
+            <div class="accordion-header control block">
+                <label for="accordion-toggle" class="accordion-label button link">Click for setup help</label>
+            </div>
+            <div class="accordion-body block">
+                <p>To connect to your Google Photos account:</p>
+                <br />
+                <ol>
+                    <li>Enable the Photos API <a
+                            href="https://console.cloud.google.com/apis/library/photoslibrary.googleapis.com"
+                            target="_blank">here</a></li>
+                    <li>Begin setting up credentials by going <a
+                            href="https://console.cloud.google.com/apis/credentials" target="_blank">here</a></li>
+                    <li>Click "Create Credentials" and select "OAuth client ID"</li>
+                    <li>Choose "Web application" and enter a name such as "Missionary Board"</li>
+                    <li>Under "Authorized redirect URIs" enter
+                        <code>{{ url_for('authorize') }}</code>
+                    </li>
+                    <li>Click "Create"</li>
+                    <li>Copy the "Client ID" and "Client secret" from that page into the form
+                        below</li>
+                    <li>Click "Submit"</li>
+                    <li>Follow the prompts to authorize access to your account</li>
+                </ol>
+                <br />
+                <p>To add missionary photos:</p>
+                <br />
+                <ol>
+                    <li>Make an album called "Missionary Board" in your account and
+                        upload missionary photos there</li>
+                    <li>When viewing a photo, click the "info" icon</li>
+                    <li>Enter information about the missionary in the "Add a
+                        description" field</li>
+                    <li>The first line should be the missionary's name while following
+                        lines can be things like ward, mission name, dates serving, etc.</li>
+                </ol>
+            </div>
         </div>
-        <div class="message-body">
-            {{ setup_error_description }}}
-        </div>
-    </article>
-    {% endif %}
+    </div>
+
     <form action="" method="post">
         <div class="field">
             <label for="client_id" class="label">Client ID</label>

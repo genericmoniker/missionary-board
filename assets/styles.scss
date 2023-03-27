@@ -10,3 +10,20 @@
   position: relative;
   top: 0.4em;
 }
+
+.accordion-toggle {
+  display: none;
+}
+
+.accordion-label {
+  cursor: pointer;
+}
+
+.accordion-toggle:checked ~ .accordion-body {
+  display: block;
+}
+
+.accordion-body {
+  display: none;
+  margin: 1em;
+}
