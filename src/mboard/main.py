@@ -7,6 +7,8 @@ from secrets import token_hex
 from starlette.applications import Starlette
 from starlette.middleware import Middleware
 from starlette.middleware.sessions import SessionMiddleware
+from starlette.requests import Request
+from starlette.responses import PlainTextResponse
 from starlette.routing import Mount, Route
 from starlette.staticfiles import StaticFiles
 
@@ -46,6 +48,7 @@ def create_app() -> Starlette:
     routes = [
         Mount("/static", StaticFiles(directory=static_dir), name="static"),
         Mount("/photos", StaticFiles(directory=photos_dir), name="photos"),
+        Route("/ready", ready, methods=["GET", "HEAD"]),
         Route("/login", login, methods=["GET", "POST"]),
         Route("/logout", logout, methods=["POST"]),
         Route("/setup", setup, methods=["GET", "POST"]),
@@ -56,6 +59,10 @@ def create_app() -> Starlette:
     starlette = Starlette(debug=True, routes=routes, middleware=middleware)
     starlette.state.db = db
     return starlette
+
+
+async def ready(request: Request) -> PlainTextResponse:  # noqa: ARG001
+    return PlainTextResponse("OK")
 
 
 app = create_app()

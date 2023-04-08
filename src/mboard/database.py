@@ -26,7 +26,7 @@ class Database(SqliteDict):
     well-obfuscated using Fernet symmetric encryption.
     """
 
-    def __init__(self, filename: str | None = None, key: str | None = None) -> None:
+    def __init__(self, filename: str | None = None, key: bytes | None = None) -> None:
         """Initialize the database.
 
         The `key` argument is used to encrypt the database. If not provided, a new key
