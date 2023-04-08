@@ -34,6 +34,6 @@ docker buildx build \
        --platform linux/arm/v8 \
        --progress plain \
        --push \
+       --cache-from=type=registry,ref="${CACHE_IMAGE_WITH_BRANCH}" \
+       --cache-to=type=registry,ref="${CACHE_IMAGE_WITH_BRANCH}",mode=max \
        .
-    #    --cache-from=type=registry,ref="${CACHE_IMAGE_WITH_BRANCH}" \
-    #    --cache-to=type=registry,ref="${CACHE_IMAGE_WITH_BRANCH}",mode=max \
