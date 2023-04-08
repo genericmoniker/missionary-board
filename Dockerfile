@@ -55,4 +55,4 @@ COPY --chown=appuser . .
 ENV PYTHONFAULTHANDLER=1
 
 # Run the code when the image is run:
-CMD ["tini", "--", "uvicorn", "--app-dir", "src", "--log-config", "conf/uvicorn.logger.json", "mboard.main:app"]
+CMD ["tini", "--", "uvicorn", "--host", "0.0.0.0", "--app-dir", "src", "--log-config", "conf/uvicorn.logger.json", "mboard.main:app"]
