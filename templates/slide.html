@@ -45,10 +45,12 @@
                     <img src="{{ url_for('photos', path=missionary.image_path) }}">
                 </div>
                 <div class="info">
-                    <span class="name">{{missionary.name}}</span><br />
-                    {% for detail in missionary.details %}
-                    <span class="detail">{{detail}}</span><br />
-                    {% endfor %}
+                    <p class="name">{{missionary.name}}</p>
+                    <p>
+                        {% for detail in missionary.details %}
+                        <span class="detail">{{detail}}</span><br />
+                        {% endfor %}
+                    </p>
                 </div>
             </div>
 
