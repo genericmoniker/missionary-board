@@ -85,7 +85,7 @@ class Missionaries:
 
     def _parse_media_item(self, item: dict) -> Missionary:
         data = {
-            "image_path": item["filename"],
+            "image_path": self._format_image_path(item),
             "image_base_url": item["baseUrl"],
             "name": "",
             "details": [],
@@ -101,6 +101,16 @@ class Missionaries:
                 continue
             data["details"].append(line)
         return Missionary(**data)
+
+    @staticmethod
+    def _format_image_path(item: dict) -> str:
+        full_filename = Path(item["filename"])
+        filename = full_filename.stem
+        extension = full_filename.suffix
+        # Include the dimensions in the name to re-download if the image is cropped.
+        width = item["mediaMetadata"]["width"]
+        height = item["mediaMetadata"]["height"]
+        return f"{filename}_{width}x{height}{extension}"
 
     def _sort_key(self, missionary: Missionary) -> tuple[str, str]:
         names = missionary.name.split()

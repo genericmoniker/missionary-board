@@ -48,6 +48,14 @@ class Album:
     coverPhotoMediaItemId: str = field(default_factory=generic.random.randstr)
 
 
+def media_metadata():
+    return {
+        "creationTime": "2021-01-01T00:00:00Z",
+        "width": "800",
+        "height": "600",
+    }
+
+
 @dataclass
 class MediaItem:
     id: str = field(default_factory=generic.random.randstr)
@@ -55,7 +63,7 @@ class MediaItem:
     productUrl: str = field(default_factory=generic.internet.url)
     baseUrl: str = field(default_factory=generic.internet.url)
     mimeType: str = field(default="image/jpeg")
-    mediaMetadata: dict = field(default_factory=dict)
+    mediaMetadata: dict = field(default_factory=media_metadata)
     filename: str = field(default_factory=generic.file.file_name)
 
 
@@ -76,7 +84,9 @@ async def test_refresh_gets_new_missionary_data(tmp_path, db):
     client = FakeGooglePhotosClient({}, lambda *_: None)
     album = Album()
     client.albums = [album]
-    media_item = MediaItem()
+    media_item = MediaItem(
+        filename="abc.jpg", mediaMetadata={"width": "1", "height": "1"}
+    )
     client.media_items = {album.id: [media_item]}
     missionaries = Missionaries(db, tmp_path, client)
 
@@ -86,7 +96,7 @@ async def test_refresh_gets_new_missionary_data(tmp_path, db):
     missionaries_items, next_offset = missionaries.list_range(0, 1)
     assert missionaries_items
     assert next_offset == 0
-    assert (tmp_path / media_item.filename).exists()
+    assert (tmp_path / "abc_1x1.jpg").exists()
 
 
 @pytest.mark.asyncio
@@ -111,14 +121,34 @@ async def test_refresh_does_not_download_already_cached_image(tmp_path, db):
     client = FakeGooglePhotosClient({}, lambda *_: None)
     album = Album()
     client.albums = [album]
-    media_item = MediaItem()
+    media_item = MediaItem(
+        filename="cached.jpg", mediaMetadata={"width": "5", "height": "9"}
+    )
     client.media_items = {album.id: [media_item]}
-    (tmp_path / media_item.filename).write_bytes(b"Image data")
+    (tmp_path / "cached_5x9.jpg").write_bytes(b"Image data")
     missionaries = Missionaries(db, tmp_path, client)
 
     await missionaries.refresh()
 
     assert media_item.baseUrl not in client.downloads
+
+
+@pytest.mark.asyncio
+async def test_refresh_downloads_resized_image(tmp_path, db):
+    db["last_refresh"] = datetime.min.replace(tzinfo=timezone.utc)
+    client = FakeGooglePhotosClient({}, lambda *_: None)
+    album = Album()
+    client.albums = [album]
+    media_item = MediaItem(
+        filename="cached.jpg", mediaMetadata={"width": "5", "height": "9"}
+    )
+    client.media_items = {album.id: [media_item]}
+    (tmp_path / "cached_8x10.jpg").write_bytes(b"Image data")
+    missionaries = Missionaries(db, tmp_path, client)
+
+    await missionaries.refresh()
+
+    assert media_item.baseUrl in client.downloads
 
 
 @pytest.mark.asyncio
@@ -198,12 +228,12 @@ def test_missionary_data_parsed_from_media_item(tmp_path, media_item_description
         productUrl="https://photos.google.com/lr/photo/123",
         baseUrl="https://lh3.googleusercontent.com/abc",
         mimeType="image/jpeg",
-        mediaMetadata={},
+        mediaMetadata={"width": "5", "height": "9"},
         filename="abc.jpg",
     )
     missionary = missionaries._parse_media_item(asdict(media_item))
 
-    assert missionary.image_path == "abc.jpg"
+    assert missionary.image_path == "abc_5x9.jpg"
     assert missionary.image_base_url == "https://lh3.googleusercontent.com/abc"
     assert missionary.name == "Sister Jones"
     assert missionary.details == [
@@ -224,12 +254,12 @@ def test_missionary_data_silently_empty_if_not_specified(tmp_path, description, 
         productUrl="https://photos.google.com/lr/photo/123",
         baseUrl="https://lh3.googleusercontent.com/abc",
         mimeType="image/jpeg",
-        mediaMetadata={},
+        mediaMetadata={"width": "5", "height": "9"},
         filename="abc.jpg",
     )
     missionary = missionaries._parse_media_item(asdict(media_item))
 
-    assert missionary.image_path == "abc.jpg"
+    assert missionary.image_path == "abc_5x9.jpg"
     assert missionary.image_base_url == "https://lh3.googleusercontent.com/abc"
     assert missionary.name == ""
     assert missionary.details == []
