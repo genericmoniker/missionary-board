@@ -1,0 +1,10 @@
+# Copy to /home/orangepi/.config/autostart/
+
+[Desktop Entry]
+Type=Application
+Exec=unclutter
+Hidden=false
+NoDisplay=false
+X-GNOME-Autostart-enabled=true
+Name=Unclutter
+Comment=Unclutter the screen by hiding the mouse cursor
