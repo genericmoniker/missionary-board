@@ -89,8 +89,9 @@ sudo crontab -e
 
 And add this entry to the file:
 
+```
 0 2  * * 3 /sbin/shutdown -r
-
+```
 
 ## Board set up
 
