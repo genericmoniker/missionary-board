@@ -27,7 +27,7 @@
                 <label for="accordion-toggle" class="accordion-label button link">Click for setup help</label>
             </div>
             <div class="accordion-body block">
-                <p>To connect to your Google Photos account:</p>
+                <p><b>To connect to your Google Photos account:</b></p>
                 <br />
                 <ol>
                     <li>Enable the Photos API <a
@@ -35,8 +35,10 @@
                             target="_blank">here</a></li>
                     <li>Begin setting up credentials by going <a
                             href="https://console.cloud.google.com/apis/credentials" target="_blank">here</a></li>
-                    <li>Click "Create Credentials" and select "OAuth client ID"</li>
-                    <li>Choose "Web application" and enter a name such as "Missionary Board"</li>
+                    <li>Click "Create Credentials" and choose "OAuth client ID"
+                    from the menu</li>
+                    <li>Choose "Web application" for the application type with a
+                    name like "Missionary Board"</li>
                     <li>Under "Authorized redirect URIs" enter
                         <code>{{ url_for('authorize') }}</code>
                     </li>
@@ -45,9 +47,12 @@
                         below</li>
                     <li>Click "Submit"</li>
                     <li>Follow the prompts to authorize access to your account</li>
+                    <li>If, in the future, there are authorization problems,
+                    return to this page, double-check the entered values and
+                    submit the form again to re-authorize access to your account</li>
                 </ol>
                 <br />
-                <p>To add missionary photos:</p>
+                <p><b>To add missionary photos:</b></p>
                 <br />
                 <ol>
                     <li>Make an album called "Missionary Board" in your account and
