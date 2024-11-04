@@ -81,10 +81,13 @@ good-names = "db, ex"
 # https://docs.pytest.org/en/latest/explanation/goodpractices.html#choosing-a-test-layout-import-rules
 pythonpath = "src"
 
+# Default fixture scope for aysncio tests.
+asyncio_default_fixture_loop_scope = "function"
+
 # Show slowest tests.
 addopts = "--durations=5"
 
-[tool.ruff]
+[tool.ruff.lint]
 select = ["ALL"]
 ignore = [
     "ANN101",   # Missing type annotation for `self` in method

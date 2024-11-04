@@ -1,4 +1,5 @@
 """Missionaries repository."""
+
 import logging
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone

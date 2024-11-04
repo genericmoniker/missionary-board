@@ -6,6 +6,7 @@ https://console.cloud.google.com/apis/library/photoslibrary.googleapis.com
 To manage credentials (client ID and secret), go to:
 https://console.cloud.google.com/apis/credentials
 """
+
 from collections.abc import Callable
 
 from authlib.integrations.httpx_client import AsyncOAuth2Client  # type: ignore

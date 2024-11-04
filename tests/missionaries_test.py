@@ -1,15 +1,20 @@
+import string
+from collections.abc import Callable
 from dataclasses import asdict, dataclass, field
 from datetime import datetime, timezone
-from typing import Callable
+from random import choices
+
 import pytest
 from mimesis import Generic
-from mboard.database import Database
+
 from mboard.google_photos import GooglePhotosClient
 from mboard.missionaries import Missionaries, Missionary
 
-
 generic = Generic()
 
+
+def randstr() -> str:
+    return "".join(choices(string.ascii_lowercase, k=8))  # noqa: S311
 
 class FakeGooglePhotosClient(GooglePhotosClient):
     def __init__(
@@ -39,13 +44,13 @@ class FakeGooglePhotosClient(GooglePhotosClient):
 
 @dataclass
 class Album:
-    id: str = field(default_factory=generic.random.randstr)
+    id: str = field(default_factory=randstr)
     title: str = field(default="Missionary Board")
     productUrl: str = field(default_factory=generic.internet.url)
     isWriteable: bool = field(default=True)
     mediaItemsCount: str = field(default=str(0))
     coverPhotoBaseUrl: str = field(default_factory=generic.internet.url)
-    coverPhotoMediaItemId: str = field(default_factory=generic.random.randstr)
+    coverPhotoMediaItemId: str = field(default_factory=randstr)
 
 
 def media_metadata():
@@ -58,7 +63,7 @@ def media_metadata():
 
 @dataclass
 class MediaItem:
-    id: str = field(default_factory=generic.random.randstr)
+    id: str = field(default_factory=randstr)
     description: str = field(default_factory=generic.text.text)
     productUrl: str = field(default_factory=generic.internet.url)
     baseUrl: str = field(default_factory=generic.internet.url)

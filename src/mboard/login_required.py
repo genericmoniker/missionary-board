@@ -1,4 +1,5 @@
 """Decorator to require login for a function."""
+
 import asyncio
 import functools
 import inspect

@@ -10,21 +10,21 @@ repos:
 
   - id: black
     name: black
-    stages: [commit]
+    stages: [pre-commit]
     language: system
     entry: pdm run black
     types: [python]
 
   - id: ruff
     name: ruff
-    stages: [commit]
+    stages: [pre-commit]
     language: system
-    entry: pdm run ruff --fix --respect-gitignore
+    entry: pdm run ruff check --fix --respect-gitignore
     types: [python]
 
   - id: mypy
     name: mypy
-    stages: [commit]
+    stages: [pre-commit]
     language: system
     entry: pdm run mypy src
     types: [python]
@@ -32,7 +32,7 @@ repos:
 
   - id: pytest
     name: pytest
-    stages: [commit]
+    stages: [pre-commit]
     language: system
     entry: pdm run test
     types: [python]

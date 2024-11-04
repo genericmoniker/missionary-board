@@ -1,4 +1,5 @@
 """Login page, including setup of the admin password."""
+
 import argon2
 from starlette.datastructures import FormData
 from starlette.requests import Request
@@ -51,9 +52,9 @@ def _establish_admin_password(form_data: FormData, db: Database, context: dict) 
         # Hash the password and store it in the database.
         db["admin_password_hash"] = _password_hasher.hash(password)
         context["admin_password_established"] = True
-        context[
-            "success_message"
-        ] = "Admin password set successfully. You can now log in."
+        context["success_message"] = (
+            "Admin password set successfully. You can now log in."
+        )
 
 
 def _validate_admin_password_input(

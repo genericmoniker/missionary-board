@@ -1,4 +1,5 @@
 """Persistence layer for mboard."""
+
 import importlib
 import json
 import logging
@@ -74,7 +75,7 @@ class _ExtendedEncoder(json.JSONEncoder):
         if hasattr(o, "isoformat"):
             return {"_dt_": o.isoformat()}  # type: ignore
 
-        if is_dataclass(o):
+        if is_dataclass(o) and not isinstance(o, type):
             dc_dict = asdict(o)
             cls = o.__class__
             dc_dict["_module_"] = cls.__module__
@@ -107,7 +108,7 @@ class _ExtendedDecoder(json.JSONDecoder):
                 module = importlib.import_module(module_name)
                 cls = getattr(module, class_name)
                 return cls(**obj)
-            except Exception as ex:  # noqa: BLE001
+            except Exception as ex:
                 msg = f"Couldn't deserialize class {module_name}.{class_name}"
                 raise ValueError(msg) from ex
         return obj

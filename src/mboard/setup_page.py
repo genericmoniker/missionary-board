@@ -2,6 +2,7 @@
 
 Much of this is (as always) setting up OAuth2 authentication.
 """
+
 from starlette.requests import Request
 from starlette.responses import RedirectResponse, Response
 
@@ -27,7 +28,7 @@ async def authorize(request: Request) -> RedirectResponse:
             client_id=db["client_id"],
             client_secret=db["client_secret"],
             state=db["state_secret"],
-            redirect_uri=request.url_for("authorize"),
+            redirect_uri=str(request.url_for("authorize")),
             authorization_code=code,
         )
         db["token"] = token
@@ -75,7 +76,7 @@ async def _setup_post(request: Request, db: Database) -> Response:
 
     db["client_id"] = client_id
     db["client_secret"] = client_secret
-    redirect_url = request.url_for("authorize")
+    redirect_url = str(request.url_for("authorize"))
     auth_url, state = google_photos.setup_auth(client_id, client_secret, redirect_url)
     db["state_secret"] = state
 

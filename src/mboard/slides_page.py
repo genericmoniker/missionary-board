@@ -1,4 +1,5 @@
 """Main page for the slideshow."""
+
 import logging
 from functools import partial
 
