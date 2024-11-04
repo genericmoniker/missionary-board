@@ -1,4 +1,5 @@
 """Missionaries repository."""
+import logging
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -7,6 +8,8 @@ from mboard.database import Database
 from mboard.google_photos import GooglePhotosClient
 
 REFRESH_INTERVAL = timedelta(minutes=2)
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -81,6 +84,7 @@ class Missionaries:
     async def _load_missionaries(self, album: dict) -> list[Missionary]:
         media_items = await self.client.get_media_items(album["id"])
         missionaries = [self._parse_media_item(item) for item in media_items]
+        logger.info("Loaded %d missionaries", len(missionaries))
         return sorted(missionaries, key=self._sort_key)
 
     def _parse_media_item(self, item: dict) -> Missionary:

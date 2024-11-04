@@ -1,4 +1,5 @@
 """Main page for the slideshow."""
+import logging
 from functools import partial
 
 from starlette.background import BackgroundTask
@@ -11,12 +12,16 @@ from mboard.missionaries import Missionaries
 from mboard.paths import PHOTOS_DIR
 from mboard.templates import templates
 
+logger = logging.getLogger(__name__)
+
+
 PAGE_SIZE = 6
 
 
 async def slides(request: Request) -> Response:
     db = request.app.state.db
     if not db.get("token"):
+        logger.info("No access token available. Redirecting to setup page.")
         return RedirectResponse(request.url_for("setup"))
 
     offset = int(request.query_params.get("offset", 0))
