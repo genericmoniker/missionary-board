@@ -42,8 +42,21 @@ class Missionaries:
         if not self._needs_refresh():
             return
 
-        await self._sync_missionaries()
-        self.db["last_refresh"] = datetime.now(tz=timezone.utc)
+        try:
+            await self._sync_missionaries()
+        except Exception as e:  # noqa: BLE001
+            error = f"{type(e).__name__}: {e}"
+            last_refresh = self.db.get("last_refresh")
+            last_refresh = str(last_refresh.astimezone()) if last_refresh else "(never)"
+            logger.error(  # noqa: TRY400
+                "Error synchronizing missionaries: %s. Last sync was %s",
+                error,
+                last_refresh,
+            )
+            self.db["refresh_error"] = error
+        else:
+            self.db.pop("refresh_error", None)
+            self.db["last_refresh"] = datetime.now(tz=timezone.utc)
 
     def list_range(
         self,
@@ -58,6 +71,13 @@ class Missionaries:
         missionaries = self.db.get("missionaries", [])
         next_offset = offset + limit if offset + limit < len(missionaries) else 0
         return missionaries[offset : offset + limit], next_offset
+
+    def get_refresh_error(self) -> str:
+        """Get the error that occurred during the last refresh.
+
+        Return an empty string if there was no error.
+        """
+        return self.db.get("refresh_error", "")
 
     def _needs_refresh(self) -> bool:
         now = datetime.now(tz=timezone.utc)

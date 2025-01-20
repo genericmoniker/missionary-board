@@ -28,7 +28,7 @@ async def authorize(request: Request) -> RedirectResponse:
             client_id=db["client_id"],
             client_secret=db["client_secret"],
             state=db["state_secret"],
-            redirect_uri=str(request.url_for("authorize")),
+            redirect_uri="http://localhost:8000/authorize",
             authorization_code=code,
         )
         db["token"] = token

@@ -40,6 +40,7 @@ async def slides(request: Request) -> Response:
         "request": request,
         "next_url": f"{request.url_for('slides')}?offset={offset}&limit={PAGE_SIZE}",
         "missionaries": missionaries,
+        "refresh_error": missionaries_repo.get_refresh_error(),
     }
 
     task = BackgroundTask(missionaries_repo.refresh)
@@ -50,11 +51,29 @@ async def slides(request: Request) -> Response:
 async def _update_token(
     db: Database,
     token: dict,
-    access_token: str | None = None,  # noqa: ARG001
-    refresh_token: str | None = None,  # noqa: ARG001
+    **kwargs: dict,  # noqa: ARG001
 ) -> None:
-    """Update the token in the database when refreshed."""
+    """Update the token in the database when refreshed.
+
+    The documentation is pretty sparse for this callback function. See
+    https://docs.authlib.org/en/latest/client/httpx.html#auto-update-token
+
+    The `token` parameter is a dictionary with the potentially new access token and
+    refresh token.
+
+    It can be called with `refresh_token` and/or `access_token` parameters too, which
+    are the same values as in `token`, so I'm not sure what the point is. I just made
+    the signature accept **kwargs.
+    """
+    # Save the new token in the database.
     db["token"] = token
+
+    # Partially redact the tokens in the logs.
+    log_token = dict(token)
+    log_token["access_token"] = token["access_token"][:15] + "..."
+    log_token["refresh_token"] = token["refresh_token"][:15] + "..."
+    logger.info("Photos token updated: %s", log_token)
+
     # Find out what happens if the refresh token is expired too.
     # Docs say they last for 6 months (but can be revoked, etc.):
     # https://developers.google.com/identity/protocols/oauth2#expiration

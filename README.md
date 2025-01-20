@@ -101,7 +101,7 @@ And add this entry to the file:
 
 ## Board set up
 
-TODO...
+Follow the instructions in the web application when running it the first time.
 
 ## Development
 

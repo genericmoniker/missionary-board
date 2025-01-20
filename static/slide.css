@@ -102,3 +102,8 @@ body {
 #setup:hover {
     transform: scale(2);
 }
+
+#setup.error {
+    /* Turn the icon red */
+    filter: invert(18%) sepia(100%) saturate(7483%) hue-rotate(1deg) brightness(97%) contrast(104%);
+}

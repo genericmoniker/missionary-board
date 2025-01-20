@@ -71,14 +71,25 @@ class GooglePhotosClient:
     def __init__(
         self,
         token: dict,
-        update_token: Callable,
+        update_token_function: Callable,
         client_id: str,
         client_secret: str,
     ) -> None:
-        """Initialize the client."""
+        """Initialize the client.
+
+        `token` is the token dictionary returned by authorize(). It should be stored
+        and passed to this constructor.
+
+        `update_token_function` is a function that will be called when the token is
+        updated. It should store the new token in a database or other persistent
+        storage.
+
+        `client_id` and `client_secret` are the values used to register the application
+        with Google.
+        """
         self.client = AsyncOAuth2Client(
             token=token,
-            update_token=update_token,
+            update_token=update_token_function,
             token_endpoint="https://oauth2.googleapis.com/token",
             client_id=client_id,
             client_secret=client_secret,
@@ -95,7 +106,7 @@ class GooglePhotosClient:
         return response.json().get("albums", [])
 
     async def get_media_items(self, album_id: str) -> list:
-        """Get the list of media items in an album."""
+        """Search for the list of media items in an album."""
         # https://developers.google.com/photos/library/reference/rest/v1/mediaItems/search
         # If there are more than 100 items, we'll need to add pagination support.
         response = await self.client.post(

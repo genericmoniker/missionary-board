@@ -37,10 +37,10 @@
                             href="https://console.cloud.google.com/apis/credentials" target="_blank">here</a></li>
                     <li>Click "Create Credentials" and choose "OAuth client ID"
                     from the menu</li>
-                    <li>Choose "Web application" for the application type with a
-                    name like "Missionary Board"</li>
+                    <li>Choose "Web application" for the application type, and
+                    give it a name like "Missionary Board"</li>
                     <li>Under "Authorized redirect URIs" enter
-                        <code>{{ url_for('authorize') }}</code>
+                        <code>http://localhost:8000/authorize</code>
                     </li>
                     <li>Click "Create"</li>
                     <li>Copy the "Client ID" and "Client secret" from that page into the form

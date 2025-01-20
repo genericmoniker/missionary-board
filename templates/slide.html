@@ -34,9 +34,10 @@
                 </div>
             </section>
             {% else %}
-            <div id="setup">
+            <div id="setup" class="{% if refresh_error %}error{% endif %}">
                 <a href="{{ url_for('setup') }}">
-                    <img src="{{ url_for('static', path='/cog.svg') }}" alt="setup">
+                    <img src="{{ url_for('static', path='/cog.svg') }}"
+                    alt="setup" title="{% if refresh_error %}{{refresh_error}}{% endif %}">
                 </a>
             </div>
             {% endif %}
