@@ -4,7 +4,7 @@ Description=Missionary Board Server
 [Service]
 Restart=always
 WorkingDirectory=/home/orangepi/missionary-board
-ExecStart=./system/mboard.service.start.sh
+ExecStart=/home/orangepi/missionary-board/system/mboard.service.start.sh
 
 [Install]
 WantedBy=multi-user.target
