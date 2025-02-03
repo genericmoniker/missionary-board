@@ -13,7 +13,7 @@ echo "> Installing dependencies"
 uv sync
 
 echo "> Starting the server"
-uv run uvicorn --app-dir src --log-config conf/uvicorn.logger.json mboard.main:app
+uv run uvicorn --app-dir src --log-config conf/uvicorn.logger.json mboard.main:app &
 
 echo "> Waiting for the server to be ready"
 count=0
