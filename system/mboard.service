@@ -1,13 +1,10 @@
 [Unit]
 Description=Missionary Board Server
-Requires=docker.service
-After=docker.service
 
 [Service]
-User=orangepi
 Restart=always
-ExecStart=/usr/bin/docker start --attach mboard
-ExecStop=/usr/bin/docker stop --time=5 mboard
+WorkingDirectory=/home/orangepi/mboard
+ExecStart=system/mboard.service.start.sh
 
 [Install]
 WantedBy=multi-user.target

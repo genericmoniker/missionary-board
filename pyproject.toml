@@ -1,80 +1,40 @@
 [project]
-name = ""
-version = ""
-description = ""
-authors = [
-    {name = "Eric Smith", email = "eric@esmithy.net"},
-]
+name = "missionary-board"
+version = "0.1.0"
+description = "Missionary Portrait Board"
+readme = "README.md"
+requires-python = ">=3.12"
 dependencies = [
-    "starlette>=0.23.1",
-    "httpx>=0.23.3",
-    "jinja2>=3.1.2",
-    "uvicorn>=0.20.0",
+    "aiogoogle>=5.13.2",
+    "argon2-cffi>=23.1.0",
+    "authlib>=1.4.1",
+    "cryptography>=44.0.0",
+    "httpx>=0.28.1",
+    "itsdangerous>=2.2.0",
+    "jinja2>=3.1.5",
+    "python-multipart>=0.0.20",
     "sqlitedict>=2.1.0",
-    "cryptography<3.5",
-    "python-multipart>=0.0.5",
-    "aiogoogle>=5.1.0",
-    "Authlib>=1.2.0",
-    "argon2-cffi>=21.3.0",
-    "itsdangerous>=2.1.2",
+    "starlette>=0.45.3",
+    "uvicorn>=0.34.0",
 ]
-requires-python = ">=3.10"
-license = {text = "MIT"}
 
-[tool.pdm]
-[tool.pdm.dev-dependencies]
+[dependency-groups]
 dev = [
-    "black>=22.12.0",
-    "mypy>=0.991",
-    "pytest>=7.2.1",
-    "pre-commit>=2.21.0",
-    "pytest-asyncio>=0.20.3",
-    "mimesis>=7.0.0",
-    "pytest-cov>=4.0.0",
-    "ruff>=0.0.254",
+    "mimesis>=18.0.0",
+    "pytest-asyncio>=0.25.3",
+    "pytest-cov>=6.0.0",
+    "ruff>=0.9.4",
 ]
 
-[tool.pdm.scripts]
+[project.scripts]
+#mboard = "uvicorn --reload --app-dir src --log-config conf/uvicorn.logger.json mboard.main:app"
 
-[tool.pdm.scripts.dev]
-cmd = "uvicorn --reload --app-dir src --log-config conf/uvicorn.logger.json mboard.main:app"
-help = "Run the web server with auto-reload"
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
 
-[tool.pdm.scripts.pre]
-cmd = "pre-commit run --all-files"
-help = "Run pre-commit checks on all files"
-
-[tool.pdm.scripts.styles]
-cmd = "sass --style=compressed --no-source-map --update assets/styles.scss static/styles.css"
-help = "Build the styles.css file"
-
-[tool.pdm.scripts.test]
-cmd = "pytest"
-help = "Run the tests"
-
-[tool.pdm.scripts.test-cov]
-composite = ["test --cov=src/mboard --cov-report=html", "_test-cov-srv"]
-help = "Run the tests with coverage and serve the report"
-
-[tool.pdm.scripts.test-cov-srv]
-cmd = "python -m http.server --bind 127.0.0.1 --directory htmlcov 8888"
-help = "Serve the coverage report"
-
-[tool.isort]
-profile = "black"
-multi_line_output = 3
-
-[tool.pylint.general]
-init-hook="import sys; sys.path.append('src')"
-
-[tool.pylint.messages_control]
-disable = """
-missing-function-docstring,
-too-few-public-methods,
-"""
-
-[tool.pylint.basic]
-good-names = "db, ex"
+[tool.hatch.build.targets.wheel]
+packages = ["src/mboard"]
 
 [tool.pytest.ini_options]
 # Allow tests to import application files by updating pythonpath. See:
