@@ -7,4 +7,4 @@ WorkingDirectory=/home/orangepi/missionary-board
 ExecStart=/home/orangepi/.local/bin/uv run uvicorn --app-dir ./src --log-config ./conf/uvicorn.logger.json mboard.main:app
 
 [Install]
-WantedBy=multi-user.target
+WantedBy=default.target
