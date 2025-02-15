@@ -21,6 +21,7 @@ dependencies = [
 [dependency-groups]
 dev = [
     "mimesis>=18.0.0",
+    "pre-commit>=4.1.0",
     "pytest-asyncio>=0.25.3",
     "pytest-cov>=6.0.0",
     "ruff>=0.9.4",
