@@ -1,39 +1,24 @@
 # See https://pre-commit.com/ for usage and config
 default_language_version:
-    python: python3.10
-
-files: ^src/.*\.py$
+    python: python3.12
 
 repos:
+- repo: https://github.com/astral-sh/ruff-pre-commit
+  # Ruff version.
+  rev: v0.9.6
+  hooks:
+    # Run the linter.
+    - id: ruff
+      args: [ --fix ]
+    # Run the formatter.
+    - id: ruff-format
+
 - repo: local
   hooks:
-
-  - id: black
-    name: black
-    stages: [pre-commit]
-    language: system
-    entry: pdm run black
-    types: [python]
-
-  - id: ruff
-    name: ruff
-    stages: [pre-commit]
-    language: system
-    entry: pdm run ruff check --fix --respect-gitignore
-    types: [python]
-
-  - id: mypy
-    name: mypy
-    stages: [pre-commit]
-    language: system
-    entry: pdm run mypy src
-    types: [python]
-    pass_filenames: false
-
-  - id: pytest
-    name: pytest
-    stages: [pre-commit]
-    language: system
-    entry: pdm run test
-    types: [python]
-    pass_filenames: false
+    - id: pytest
+      name: pytest
+      stages: [pre-commit]
+      language: system
+      entry: uv run pytest
+      types: [python]
+      pass_filenames: false

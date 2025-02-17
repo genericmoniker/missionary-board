@@ -1,14 +1,21 @@
+"""Tests for the missionaries module."""
+
 import string
 from collections.abc import Callable
 from dataclasses import asdict, dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
+from pathlib import Path
 from random import choices
 
 import pytest
 from mimesis import Generic
 
+from mboard.database import Database
 from mboard.google_photos import GooglePhotosClient
 from mboard.missionaries import Missionaries, Missionary
+
+# ruff: noqa: N815 (Google uses camelCase for many of its API fields)
+
 
 generic = Generic()
 
@@ -16,34 +23,42 @@ generic = Generic()
 def randstr() -> str:
     return "".join(choices(string.ascii_lowercase, k=8))  # noqa: S311
 
+
 class FakeGooglePhotosClient(GooglePhotosClient):
+    """A fake Google Photos client for testing purposes."""
+
     def __init__(
         self,
         token: dict,
         update_token: Callable,
         client_id: str = "",
         client_secret: str = "",
-    ):
+    ) -> None:
         super().__init__(token, update_token, client_id, client_secret)
         self.albums = []
         self.media_items = {}
         self.get_albums_called = False
         self.downloads = []
 
-    async def get_albums(self):
+    async def get_albums(self) -> list[dict]:
+        """Return a list of fake Google Photos albums."""
         self.get_albums_called = True
         return [asdict(album) for album in self.albums]
 
-    async def get_media_items(self, album_id: str):
+    async def get_media_items(self, album_id: str) -> list[dict]:
+        """Return a list of fake Google Photos media items."""
         return [asdict(mi) for mi in self.media_items[album_id]]
 
-    async def download(self, media_item_base_url: str):
+    async def download(self, media_item_base_url: str) -> bytes:
+        """Return fake image data."""
         self.downloads.append(media_item_base_url)
         return b"Image data for " + media_item_base_url.encode("utf-8")
 
 
 @dataclass
 class Album:
+    """A fake Google Photos album for testing purposes."""
+
     id: str = field(default_factory=randstr)
     title: str = field(default="Missionary Board")
     productUrl: str = field(default_factory=generic.internet.url)
@@ -53,7 +68,7 @@ class Album:
     coverPhotoMediaItemId: str = field(default_factory=randstr)
 
 
-def media_metadata():
+def media_metadata() -> dict:
     return {
         "creationTime": "2021-01-01T00:00:00Z",
         "width": "800",
@@ -63,6 +78,8 @@ def media_metadata():
 
 @dataclass
 class MediaItem:
+    """A fake Google Photos media item for testing purposes."""
+
     id: str = field(default_factory=randstr)
     description: str = field(default_factory=generic.text.text)
     productUrl: str = field(default_factory=generic.internet.url)
@@ -73,8 +90,8 @@ class MediaItem:
 
 
 @pytest.mark.asyncio
-async def test_refresh_skipped_if_not_needed(tmp_path, db):
-    db["last_refresh"] = datetime.now(tz=timezone.utc)
+async def test_refresh_skipped_if_not_needed(tmp_path: Path, db: Database) -> None:
+    db["last_refresh"] = datetime.now(tz=UTC)
     client = FakeGooglePhotosClient({}, lambda *_: None)
     missionaries = Missionaries(db, tmp_path, client)
 
@@ -84,8 +101,8 @@ async def test_refresh_skipped_if_not_needed(tmp_path, db):
 
 
 @pytest.mark.asyncio
-async def test_refresh_gets_new_missionary_data(tmp_path, db):
-    db["last_refresh"] = datetime.min.replace(tzinfo=timezone.utc)
+async def test_refresh_gets_new_missionary_data(tmp_path: Path, db: Database) -> None:
+    db["last_refresh"] = datetime.min.replace(tzinfo=UTC)
     client = FakeGooglePhotosClient({}, lambda *_: None)
     album = Album()
     client.albums = [album]
@@ -105,8 +122,8 @@ async def test_refresh_gets_new_missionary_data(tmp_path, db):
 
 
 @pytest.mark.asyncio
-async def test_refresh_updates_missionary_data(tmp_path, db):
-    db["last_refresh"] = datetime.min.replace(tzinfo=timezone.utc)
+async def test_refresh_updates_missionary_data(tmp_path: Path, db: Database) -> None:
+    db["last_refresh"] = datetime.min.replace(tzinfo=UTC)
     db["missionaries"] = [Missionary(name="Sister Jones")]
     client = FakeGooglePhotosClient({}, lambda *_: None)
     album = Album()
@@ -121,13 +138,17 @@ async def test_refresh_updates_missionary_data(tmp_path, db):
 
 
 @pytest.mark.asyncio
-async def test_refresh_does_not_download_already_cached_image(tmp_path, db):
-    db["last_refresh"] = datetime.min.replace(tzinfo=timezone.utc)
+async def test_refresh_does_not_download_already_cached_image(
+    tmp_path: Path,
+    db: Database,
+) -> None:
+    db["last_refresh"] = datetime.min.replace(tzinfo=UTC)
     client = FakeGooglePhotosClient({}, lambda *_: None)
     album = Album()
     client.albums = [album]
     media_item = MediaItem(
-        filename="cached.jpg", mediaMetadata={"width": "5", "height": "9"}
+        filename="cached.jpg",
+        mediaMetadata={"width": "5", "height": "9"},
     )
     client.media_items = {album.id: [media_item]}
     (tmp_path / "cached_5x9.jpg").write_bytes(b"Image data")
@@ -139,8 +160,8 @@ async def test_refresh_does_not_download_already_cached_image(tmp_path, db):
 
 
 @pytest.mark.asyncio
-async def test_refresh_downloads_resized_image(tmp_path, db):
-    db["last_refresh"] = datetime.min.replace(tzinfo=timezone.utc)
+async def test_refresh_downloads_resized_image(tmp_path: Path, db: Database) -> None:
+    db["last_refresh"] = datetime.min.replace(tzinfo=UTC)
     client = FakeGooglePhotosClient({}, lambda *_: None)
     album = Album()
     client.albums = [album]
@@ -157,8 +178,8 @@ async def test_refresh_downloads_resized_image(tmp_path, db):
 
 
 @pytest.mark.asyncio
-async def test_refresh_cleans_up_old_images(tmp_path, db):
-    db["last_refresh"] = datetime.min.replace(tzinfo=timezone.utc)
+async def test_refresh_cleans_up_old_images(tmp_path: Path, db: Database) -> None:
+    db["last_refresh"] = datetime.min.replace(tzinfo=UTC)
     client = FakeGooglePhotosClient({}, lambda *_: None)
     album = Album()
     client.albums = [album]
@@ -173,8 +194,8 @@ async def test_refresh_cleans_up_old_images(tmp_path, db):
 
 
 @pytest.mark.asyncio
-async def test_missionaries_sorted_by_last_name(tmp_path, db):
-    db["last_refresh"] = datetime.min.replace(tzinfo=timezone.utc)
+async def test_missionaries_sorted_by_last_name(tmp_path: Path, db: Database) -> None:
+    db["last_refresh"] = datetime.min.replace(tzinfo=UTC)
     client = FakeGooglePhotosClient({}, lambda *_: None)
     album = Album()
     client.albums = [album]
@@ -223,7 +244,9 @@ async def test_missionaries_sorted_by_last_name(tmp_path, db):
         "Sister Jones\n1st Ward\nChina Hong Kong Mission\nMarch 2023 - September 2024",
     ],
 )
-def test_missionary_data_parsed_from_media_item(tmp_path, media_item_description, db):
+def test_missionary_data_parsed_from_media_item(
+    tmp_path: Path, media_item_description: str, db: Database
+) -> None:
     client = FakeGooglePhotosClient({}, lambda *_: None)
     missionaries = Missionaries(db, tmp_path, client)
 
@@ -236,7 +259,7 @@ def test_missionary_data_parsed_from_media_item(tmp_path, media_item_description
         mediaMetadata={"width": "5", "height": "9"},
         filename="abc.jpg",
     )
-    missionary = missionaries._parse_media_item(asdict(media_item))
+    missionary = missionaries._parse_media_item(asdict(media_item))  # noqa: SLF001
 
     assert missionary.image_path == "abc_5x9.jpg"
     assert missionary.image_base_url == "https://lh3.googleusercontent.com/abc"
@@ -249,7 +272,9 @@ def test_missionary_data_parsed_from_media_item(tmp_path, media_item_description
 
 
 @pytest.mark.parametrize("description", ["", " ", " \n "])
-def test_missionary_data_silently_empty_if_not_specified(tmp_path, description, db):
+def test_missionary_data_silently_empty_if_not_specified(
+    tmp_path: Path, description: str, db: Database
+) -> None:
     client = FakeGooglePhotosClient({}, lambda *_: None)
     missionaries = Missionaries(db, tmp_path, client)
 
@@ -262,7 +287,7 @@ def test_missionary_data_silently_empty_if_not_specified(tmp_path, description, 
         mediaMetadata={"width": "5", "height": "9"},
         filename="abc.jpg",
     )
-    missionary = missionaries._parse_media_item(asdict(media_item))
+    missionary = missionaries._parse_media_item(asdict(media_item))  # noqa: SLF001
 
     assert missionary.image_path == "abc_5x9.jpg"
     assert missionary.image_base_url == "https://lh3.googleusercontent.com/abc"
@@ -271,7 +296,7 @@ def test_missionary_data_silently_empty_if_not_specified(tmp_path, description, 
 
 
 @pytest.mark.parametrize(
-    "count, offset, limit, expected_next_offset",
+    ("count", "offset", "limit", "expected_next_offset"),
     [
         (0, 0, 1, 0),
         (1, 0, 1, 0),
@@ -281,9 +306,14 @@ def test_missionary_data_silently_empty_if_not_specified(tmp_path, description, 
         (9, 4, 3, 7),
     ],
 )
-def test_list_returns_the_correct_next_offset(
-    tmp_path, count, offset, limit, expected_next_offset, db
-):
+def test_list_returns_the_correct_next_offset(  # noqa: PLR0913
+    tmp_path: Path,
+    count: int,
+    offset: int,
+    limit: int,
+    expected_next_offset: int,
+    db: Database,
+) -> None:
     db["missionaries"] = [Missionary(name=f"Sister Jones {i}") for i in range(count)]
     client = FakeGooglePhotosClient({}, lambda *_: None)
     missionaries = Missionaries(db, tmp_path, client)

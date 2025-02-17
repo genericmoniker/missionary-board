@@ -45,7 +45,7 @@ async def slides(request: Request) -> Response:
 
     task = BackgroundTask(missionaries_repo.refresh)
 
-    return templates.TemplateResponse("slide.html", context, background=task)
+    return templates.TemplateResponse(request, "slide.html", context, background=task)
 
 
 async def _update_token(

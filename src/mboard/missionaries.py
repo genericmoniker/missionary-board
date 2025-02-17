@@ -2,7 +2,7 @@
 
 import logging
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 from mboard.database import Database
@@ -56,7 +56,7 @@ class Missionaries:
             self.db["refresh_error"] = error
         else:
             self.db.pop("refresh_error", None)
-            self.db["last_refresh"] = datetime.now(tz=timezone.utc)
+            self.db["last_refresh"] = datetime.now(tz=UTC)
 
     def list_range(
         self,
@@ -80,9 +80,9 @@ class Missionaries:
         return self.db.get("refresh_error", "")
 
     def _needs_refresh(self) -> bool:
-        now = datetime.now(tz=timezone.utc)
+        now = datetime.now(tz=UTC)
         last_refresh = self.db.get("last_refresh", datetime.min).replace(
-            tzinfo=timezone.utc,
+            tzinfo=UTC,
         )
         return now - last_refresh > REFRESH_INTERVAL
 

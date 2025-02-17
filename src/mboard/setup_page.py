@@ -58,7 +58,7 @@ def _setup_get(request: Request, db: Database) -> Response:
     db["setup_error"] = ""
     db["setup_error_description"] = ""
 
-    return templates.TemplateResponse("setup.html", context)
+    return templates.TemplateResponse(request, "setup.html", context)
 
 
 async def _setup_post(request: Request, db: Database) -> Response:
@@ -72,7 +72,7 @@ async def _setup_post(request: Request, db: Database) -> Response:
     }
     has_error = _validate_auth_input(context, client_id, client_secret)
     if has_error:
-        return templates.TemplateResponse("setup.html", context)
+        return templates.TemplateResponse(request, "setup.html", context)
 
     db["client_id"] = client_id
     db["client_secret"] = client_secret

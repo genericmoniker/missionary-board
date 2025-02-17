@@ -1,16 +1,21 @@
+"""Pytest fixtures for the mboard package."""
+
+import httpx
+import pytest
 import sqlitedict
-from pytest import fixture
 from starlette.testclient import TestClient
+
+from mboard.database import Database
 from mboard.main import create_app
 
 
-@fixture
-def db():
+@pytest.fixture
+def db() -> Database:
     return sqlitedict.SqliteDict(":memory:")
 
 
-@fixture
-def client(db):
+@pytest.fixture
+def client(db: Database) -> httpx.Client:
     app = create_app()
     app.state.db = db
     return TestClient(app)

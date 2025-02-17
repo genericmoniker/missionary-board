@@ -22,7 +22,7 @@ def _login_get(request: Request, db: Database) -> Response:
         "request": request,
         "admin_password_established": _admin_password_established(db),
     }
-    return templates.TemplateResponse("login.html", context)
+    return templates.TemplateResponse(request, "login.html", context)
 
 
 async def _login_post(request: Request, db: Database) -> Response:
@@ -33,10 +33,10 @@ async def _login_post(request: Request, db: Database) -> Response:
     }
     if not _admin_password_established(db):
         _establish_admin_password(form_data, db, context)
-        return templates.TemplateResponse("login.html", context)
+        return templates.TemplateResponse(request, "login.html", context)
 
     if not _login(form_data, db, context):
-        return templates.TemplateResponse("login.html", context)
+        return templates.TemplateResponse(request, "login.html", context)
 
     request.session["user"] = "admin"
 

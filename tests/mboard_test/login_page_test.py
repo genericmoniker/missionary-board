@@ -1,13 +1,20 @@
+"""Tests for the login page."""
+
+import httpx
+
+from mboard.database import Database
 from mboard.login_page import _password_hasher
 
+# ruff: noqa: PLR2004 (status codes seem OK)
 
-def test_prompt_for_initial_admin_password(client):
+
+def test_prompt_for_initial_admin_password(client: httpx.Client) -> None:
     response = client.get("/login")
     assert response.status_code == 200
     assert b"Please set up a password" in response.content
 
 
-def test_error_on_empty_initial_admin_passwords(client):
+def test_error_on_empty_initial_admin_passwords(client: httpx.Client) -> None:
     response = client.post("/login", data={"password": "", "password_conf": ""})
     assert response.status_code == 200
     assert b"Please set up a password" in response.content
@@ -15,14 +22,14 @@ def test_error_on_empty_initial_admin_passwords(client):
     assert b"Password confirmation is required" in response.content
 
 
-def test_error_on_mismatched_passwords(client):
+def test_error_on_mismatched_passwords(client: httpx.Client) -> None:
     response = client.post("/login", data={"password": "foo", "password_conf": "bar"})
     assert response.status_code == 200
     assert b"Please set up a password" in response.content
     assert b"Passwords do not match" in response.content
 
 
-def test_successful_setup_of_admin_password(client, db):
+def test_successful_setup_of_admin_password(client: httpx.Client) -> None:
     response = client.post("/login", data={"password": "foo", "password_conf": "foo"})
     assert response.status_code == 200
     assert b"password set successfully" in response.content
@@ -31,7 +38,7 @@ def test_successful_setup_of_admin_password(client, db):
     assert b"Password" in response.content
 
 
-def test_prompt_for_admin_password(client, db):
+def test_prompt_for_admin_password(client: httpx.Client, db: Database) -> None:
     db["admin_password_hash"] = "some hash"
     response = client.get("/login")
     assert response.status_code == 200
@@ -40,7 +47,7 @@ def test_prompt_for_admin_password(client, db):
     assert b"Password" in response.content
 
 
-def test_successful_login(client, db):
+def test_successful_login(client: httpx.Client, db: Database) -> None:
     db["admin_password_hash"] = _password_hasher.hash("foo")
     response = client.post(
         "/login", data={"username": "admin", "password": "foo"}, follow_redirects=False
@@ -48,7 +55,7 @@ def test_successful_login(client, db):
     assert 300 < response.status_code < 400  # expect a redirect
 
 
-def test_error_on_empty_username(client, db):
+def test_error_on_empty_username(client: httpx.Client, db: Database) -> None:
     db["admin_password_hash"] = "some hash"
     response = client.post("/login", data={"password": "foo"})
     assert response.status_code == 200
@@ -58,7 +65,7 @@ def test_error_on_empty_username(client, db):
     assert b"Username is required" in response.content
 
 
-def test_error_on_empty_password(client, db):
+def test_error_on_empty_password(client: httpx.Client, db: Database) -> None:
     db["admin_password_hash"] = "some hash"
     response = client.post("/login", data={"username": "admin"})
     assert response.status_code == 200
@@ -68,7 +75,7 @@ def test_error_on_empty_password(client, db):
     assert b"Password is required" in response.content
 
 
-def test_error_on_incorrect_username(client, db):
+def test_error_on_incorrect_username(client: httpx.Client, db: Database) -> None:
     db["admin_password_hash"] = _password_hasher.hash("foo")
     response = client.post("/login", data={"username": "hacker", "password": "foo"})
     assert response.status_code == 200
@@ -78,7 +85,7 @@ def test_error_on_incorrect_username(client, db):
     assert b"Invalid username or password" in response.content
 
 
-def test_error_on_incorrect_password(client, db):
+def test_error_on_incorrect_password(client: httpx.Client, db: Database) -> None:
     db["admin_password_hash"] = _password_hasher.hash("foo")
     response = client.post("/login", data={"username": "admin", "password": "wrong"})
     assert response.status_code == 200

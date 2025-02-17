@@ -51,11 +51,12 @@ addopts = "--durations=5"
 [tool.ruff.lint]
 select = ["ALL"]
 ignore = [
-    "ANN101",   # Missing type annotation for `self` in method
     "ANN002",   # Missing type annotation for `*args`
     "ANN003",   # Missing type annotation for `**kwargs`
+    "COM812",   # Missing trailing comma in a single-line tuple
     "D103",     # Missing docstring in public function
     "D104",     # Missing docstring in public package
+    "D107",     # Missing docstring in __init__
     "D203",     # 1 blank line required before class docstring
     "D213",     # Multi-line docstring summary should start at the second line
     "PGH003",   # Use specific rule codes when ignoring type issues
@@ -64,3 +65,6 @@ ignore = [
     "S106",     # Possible hardcoded password
     "TRY300",   # Consider moving this statement to an `else` block
 ]
+
+[tool.ruff.lint.per-file-ignores]
+"**/tests/*" = ["S101"]  # Use of assert detected
