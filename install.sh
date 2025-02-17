@@ -5,6 +5,8 @@ set -euo pipefail
 
 git config pull.ff only
 
+uv sync
+
 # Install services
 mkdir -p ~/.config/systemd/user
 cp ./system/*.service ~/.config/systemd/user/

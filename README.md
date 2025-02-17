@@ -24,6 +24,12 @@ The process was tested on Debian Buster running on an Orange Pi 3 LTS. Except
 where noted, the steps should be run on the *Pi device*, either with an attached
 keyboard and screen or by using ssh to connect to the device over the network.
 
+Install [uv](https://docs.astral.sh/uv/#installation):
+
+```
+curl -LsSf https://astral.sh/uv/install.sh | sh
+```
+
 Clone this repo:
 
 ```
