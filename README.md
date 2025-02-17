@@ -18,10 +18,6 @@ The first time the web application is run, you'll be prompted to set an admin
 password and will be given instructions on setting up an application in your
 Google account and getting it authorized to read from your Google Photos.
 
-TODO:
-
-- Turn on/off with schedule?
-
 ## Device set up
 
 The process was tested on Debian Buster running on an Orange Pi 3 LTS. Except
@@ -74,10 +70,23 @@ Follow the instructions in the web application when running it the first time.
 
 ## Troubleshooting
 
-Backend logs are available via `journalctl`:
+Logs are available via `journalctl`:
 
 ```
-journalctl --user -u mboard
+journalctl --user -u mboard*
+```
+
+You may want to configure logs to be persistent between reboots. To do so:
+
+```
+sudo nano /etc/systemd/journald.conf
+```
+
+Uncomment and set the Storage option to persistent:
+
+```
+[Journal]
+Storage=persistent
 ```
 
 ## Development
