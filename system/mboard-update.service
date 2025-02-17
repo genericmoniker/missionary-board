@@ -1,0 +1,6 @@
+[Unit]
+Description=Missionary Board Update Service
+
+[Service]
+Type=oneshot
+ExecStart=/home/orangepi/missionary-board/system/mboard-update.sh

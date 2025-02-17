@@ -5,12 +5,15 @@ set -euo pipefail
 
 git config pull.ff only
 
-# Install the backend service
+# Install services
 mkdir -p ~/.config/systemd/user
-cp ./system/mboard.service ~/.config/systemd/user/
+cp ./system/*.service ~/.config/systemd/user/
+cp ./system/*.timer ~/.config/systemd/user/
 systemctl --user daemon-reload
-systemctl --user enable mboard
-systemctl --user restart mboard 
+systemctl --user enable mboard.service
+systemctl --user restart mboard.service
+systemctl --user enable mboard-update.timer
+systemctl --user restart mboard-update.timer
 
 # Install the autostart file to run the browser
 cp ./system/mboard.desktop ~/.config/autostart/
