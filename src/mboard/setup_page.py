@@ -6,7 +6,7 @@ Much of this is (as always) setting up OAuth2 authentication.
 from starlette.requests import Request
 from starlette.responses import RedirectResponse, Response
 
-from mboard import google_photos
+from mboard import google_auth
 from mboard.database import Database
 from mboard.login_required import login_required
 from mboard.templates import templates
@@ -24,7 +24,7 @@ async def authorize(request: Request) -> RedirectResponse:
     db = request.app.state.db
     code = request.query_params.get("code")
     if code:
-        token = await google_photos.authorize(
+        token = await google_auth.authorize(
             client_id=db["client_id"],
             client_secret=db["client_secret"],
             state=db["state_secret"],
@@ -77,7 +77,10 @@ async def _setup_post(request: Request, db: Database) -> Response:
     db["client_id"] = client_id
     db["client_secret"] = client_secret
     redirect_url = str(request.url_for("authorize"))
-    auth_url, state = google_photos.setup_auth(client_id, client_secret, redirect_url)
+    scope = "https://www.googleapis.com/auth/photoslibrary.readonly"
+    auth_url, state = google_auth.setup_auth(
+        client_id, client_secret, redirect_url, scope
+    )
     db["state_secret"] = state
 
     # Redirect to the authorization URL. Note that this is a 303 redirect, which is a
