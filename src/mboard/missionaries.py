@@ -5,8 +5,9 @@ from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
+from lcr_session.session import LcrSession
+from lcr_session.urls import ChurchUrl
 from mboard.database import Database
-from mboard.google_photos import GooglePhotosClient
 
 REFRESH_INTERVAL = timedelta(minutes=2)
 
@@ -17,28 +18,31 @@ logger = logging.getLogger(__name__)
 class Missionary:
     """Missionary data."""
 
+    name: str
+    sort_name: str
     image_path: str = ""
     image_base_url: str = ""
-    name: str = ""
     details: list[str] = field(default_factory=list)
 
 
 class Missionaries:
     """Missionaries repository/cache."""
 
-    def __init__(
-        self,
-        db: Database,
-        image_dir: Path,
-        client: GooglePhotosClient,
-    ) -> None:
+    def __init__(self, db: Database, image_dir: Path, lcr_session: LcrSession) -> None:
         """Initialize the missionary repository."""
         self.db = db
         self.image_dir = image_dir
-        self.client = client
+        self.lcr_session = lcr_session
+
+    @staticmethod
+    def clear(db: Database) -> None:
+        """Clear the missionaries from the database."""
+        db.pop("missionaries", None)
+        db.pop("last_refresh", None)
+        db.pop("refresh_error", None)
 
     async def refresh(self) -> None:
-        """Refresh the cache of missionaries from the photos album."""
+        """Refresh the cache of missionaries from LCR."""
         if not self._needs_refresh():
             return
 
@@ -47,7 +51,7 @@ class Missionaries:
         except Exception as e:  # noqa: BLE001
             error = f"{type(e).__name__}: {e}"
             last_refresh = self.db.get("last_refresh")
-            last_refresh = str(last_refresh.astimezone()) if last_refresh else "(never)"
+            last_refresh = str(last_refresh) if last_refresh else "(never)"
             logger.error(  # noqa: TRY400
                 "Error synchronizing missionaries: %s. Last sync was %s",
                 error,
@@ -68,7 +72,10 @@ class Missionaries:
         Returns a tuple of the list of missionaries and the offset of the next
         range of results.
         """
-        missionaries = self.db.get("missionaries", [])
+        try:
+            missionaries = self.db.get("missionaries", [])
+        except (TypeError, ValueError):
+            return [], 0
         next_offset = offset + limit if offset + limit < len(missionaries) else 0
         return missionaries[offset : offset + limit], next_offset
 
@@ -87,45 +94,50 @@ class Missionaries:
         return now - last_refresh > REFRESH_INTERVAL
 
     async def _sync_missionaries(self) -> None:
-        album = await self._find_album()
-        missionaries = await self._load_missionaries(album)
-        current_image_paths = await self._cache_images(missionaries)
-        self._clean_up_old_images(current_image_paths)
-        self.db["missionaries"] = missionaries
+        url = ChurchUrl(
+            "lcr", "api/orgs/full-time-missionaries?lang=eng&unitNumber={parent_unit}"
+        )
+        missionaries_data = await self.lcr_session.get_json(url)
+        missionaries = [self._parse_lcr_data(item) for item in missionaries_data]
+        self.db["missionaries"] = sorted(missionaries, key=lambda m: m.sort_name)
 
-    async def _find_album(self) -> dict:
-        albums = await self.client.get_albums()
-        board_album_name = "Missionary Board"
-        for album in albums:
-            if album["title"] == board_album_name:
-                return album
-        msg = f"'{board_album_name}' album not found"
-        raise MissionaryAlbumNotFoundError(msg)
+    def _parse_lcr_data(self, item: dict) -> Missionary:
+        """Parse missionary data from LCR API response."""
+        sort_name = item.get("missionaryName")
+        if not sort_name:
+            # Some missionaries have no name, so we skip them.
+            logger.warning("Placeholder for missionary with no name: %s", item)
+            return Missionary(name="", sort_name="")
+        display_name = sort_name.split(", ")[::-1]
+        display_name = " ".join(display_name)
+        gender = item.get("member", {}).get("gender")
+        if gender == "FEMALE":
+            display_name = f"Sister {display_name}"
+        elif gender == "MALE":
+            display_name = f"Elder {display_name}"
 
-    async def _load_missionaries(self, album: dict) -> list[Missionary]:
-        media_items = await self.client.get_media_items(album["id"])
-        missionaries = [self._parse_media_item(item) for item in media_items]
-        logger.info("Loaded %d missionaries", len(missionaries))
-        return sorted(missionaries, key=self._sort_key)
+        # Dates look like "20230814"
+        start = ""
+        start_date_iso = item.get("startDate")
+        if start_date_iso:
+            start_date = datetime.strptime(start_date_iso, "%Y%m%d").astimezone()
+            start = start_date.strftime("%b %Y")  # "Aug 2023"
+        end = ""
+        end_date_iso = item.get("endDate")
+        if end_date_iso:
+            end_date = datetime.strptime(end_date_iso, "%Y%m%d").astimezone()
+            end = end_date.strftime("%b %Y")
+        dates_serving = f"{start} - {end}" if start and end else ""
 
-    def _parse_media_item(self, item: dict) -> Missionary:
-        data = {
-            "image_path": self._format_image_path(item),
-            "image_base_url": item["baseUrl"],
-            "name": "",
-            "details": [],
-        }
-        description = item.get("description", "")
-        lines = description.splitlines()
-        for raw_line in lines:
-            line = raw_line.strip()
-            if not line:
-                continue
-            if not data["name"]:
-                data["name"] = line
-                continue
-            data["details"].append(line)
-        return Missionary(**data)
+        return Missionary(
+            name=display_name,
+            sort_name=sort_name,
+            details=[
+                item.get("missionName", ""),
+                dates_serving,
+                item.get("missionaryHomeUnitName", ""),
+            ],
+        )
 
     @staticmethod
     def _format_image_path(item: dict) -> str:
@@ -136,14 +148,6 @@ class Missionaries:
         width = item["mediaMetadata"]["width"]
         height = item["mediaMetadata"]["height"]
         return f"{filename}_{width}x{height}{extension}"
-
-    def _sort_key(self, missionary: Missionary) -> tuple[str, str]:
-        names = missionary.name.split()
-        if len(names) > 1:
-            return (names[-1], names[-2])
-        if names:
-            return (names[-1], "")
-        return ("", "")
 
     async def _cache_images(self, missionaries: list[Missionary]) -> set:
         current_image_paths = set()
@@ -159,7 +163,3 @@ class Missionaries:
         for image_path in self.image_dir.iterdir():
             if image_path not in current_image_paths:
                 image_path.unlink()
-
-
-class MissionaryAlbumNotFoundError(Exception):
-    """Missionary album not found error."""

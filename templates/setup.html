@@ -21,77 +21,74 @@
     </div>
 
     <div class="block">
-        <div class="accordion">
-            <input type="checkbox" id="accordion-toggle" class="accordion-toggle">
-            <div class="accordion-header control block">
-                <label for="accordion-toggle" class="accordion-label button link">Click for setup help</label>
-            </div>
-            <div class="accordion-body block">
-                <p><b>To connect to your Google Photos account:</b></p>
-                <br />
-                <ol>
-                    <li>Enable the Photos API <a
-                            href="https://console.cloud.google.com/apis/library/photoslibrary.googleapis.com"
-                            target="_blank">here</a></li>
-                    <li>Begin setting up credentials by going <a
-                            href="https://console.cloud.google.com/apis/credentials" target="_blank">here</a></li>
-                    <li>Click "Create Credentials" and choose "OAuth client ID"
-                    from the menu</li>
-                    <li>Choose "Web application" for the application type, and
-                    give it a name like "Missionary Board"</li>
-                    <li>Under "Authorized redirect URIs" enter
-                        <code>http://localhost:8000/authorize</code>
-                    </li>
-                    <li>Click "Create"</li>
-                    <li>Copy the "Client ID" and "Client secret" from that page into the form
-                        below</li>
-                    <li>Click "Submit"</li>
-                    <li>Follow the prompts to authorize access to your account</li>
-                    <li>If, in the future, there are authorization problems,
-                    return to this page, double-check the entered values and
-                    submit the form again to re-authorize access to your account</li>
-                </ol>
-                <br />
-                <p><b>To add missionary photos:</b></p>
-                <br />
-                <ol>
-                    <li>Make an album called "Missionary Board" in your account and
-                        upload missionary photos there</li>
-                    <li>When viewing a photo, click the "info" icon</li>
-                    <li>Enter information about the missionary in the "Add a
-                        description" field</li>
-                    <li>The first line should be the missionary's name while following
-                        lines can be things like ward, mission name, dates serving, etc.</li>
-                </ol>
-            </div>
-        </div>
+        {% if has_password %}
+
+        <p class="mb-4">Connected to Leader and Clerk Resources as <b>{{ username }}</b>.</p>
+
+        <form action="/setup" method="post" style="display: inline;">
+            <input type="hidden" name="action" value="disconnect">
+            <button type="submit" class="button is-danger">Disconnect Church Account</button>
+        </form>
+
+        {% else %}
+
+        <p><b>To connect to Leader and Clerk Resources enter your Church Account credentials.</b></p>
+        <br />
+
+        {% endif %}
     </div>
 
     <form action="" method="post">
         <div class="field">
-            <label for="client_id" class="label">Client ID</label>
+            <label for="username" class="label">Username</label>
             <div class="control">
-                <input type="text" id="client_id" name="client_id" value="{{ client_id }}" class="input" />
+                <input type="text" id="username" name="username" value="{{ username }}" class="input" />
             </div>
-            {% if client_id_error %}
-            <p class="help is-danger">{{ client_id_error }}</p>
-            {% endif %}
         </div>
 
         <div class="field">
-            <label for="client_secret" class="label">Client Secret</label>
+            <label for="password" class="label">Password</label>
             <div class="control">
-                <input type="text" id="client_secret" name="client_secret" value="{{ client_secret
-                }}" class="input" />
+                <input type="password" id="password" name="password" value="{{ password }}" class="input"
+                    placeholder="{{ 'Unchanged' if has_password else ''}}" />
             </div>
-            {% if client_secret_error %}
-            <p class="help is-danger">{{ client_secret_error }}</p>
-            {% endif %}
         </div>
-        <br />
-        <div class="control">
-            <button type="submit" class="button is-info">Submit</button>
+        <div class="field">
+            <div class="control">
+                <label class="checkbox">
+                    <input type="checkbox" onclick="togglePassword()"> Show password
+                </label>
+            </div>
         </div>
+
+        <div class="field mt-5">
+            <div class="control">
+                <button type="submit" class="button is-info" onclick="showLoading()">Submit</button>
+            </div>
+        </div>
+
+        <div class="field mt-5">
+            <div class="control" id="loading-message" style="display: none;">
+            <p>Validating credentials...</p>
+            <progress class="progress is-primary"></progress>
+            </div>
+        </div>
+
     </form>
 </div>
+
+<script>
+    function togglePassword() {
+        var passwordField = document.getElementById("password");
+        if (passwordField.type === "password") {
+            passwordField.type = "text";
+        } else {
+            passwordField.type = "password";
+        }
+    }
+
+    function showLoading() {
+        document.getElementById("loading-message").style.display = "block";
+    }
+</script>
 {% endblock %}
