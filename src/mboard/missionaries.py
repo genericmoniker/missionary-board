@@ -203,13 +203,24 @@ class Missionaries:
                 if companion:
                     merged_ids.add(companion.id)
                     if missionary.gender == "MALE":
-                        missionary.name = f"{missionary.name} & {companion.name}"
+                        elder = self._omit_last_name(missionary.name)
+                        missionary.name = f"{elder} & {companion.name}"
                     else:
-                        missionary.name = f"{companion.name} & {missionary.name}"
+                        elder = self._omit_last_name(companion.name)
+                        missionary.name = f"{elder} & {missionary.name}"
                         missionary.sort_name = companion.sort_name
                     logger.info("Merged couple: %s", missionary.name)
             result_missionaries.append(missionary)
         return result_missionaries
+
+    @staticmethod
+    def _omit_last_name(name: str) -> str:
+        """Omit the last name from a display name.
+
+        Elder John Smith -> Elder John
+        """
+        split_name = name.split()
+        return " ".join(split_name[:-1])
 
     @staticmethod
     def _format_image_path(item: dict) -> str:

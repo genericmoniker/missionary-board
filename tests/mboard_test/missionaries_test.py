@@ -180,7 +180,7 @@ def test_parse_missing_senior_value(
                     home_unit="Unit",
                 ),
             ],
-            "Elder A Ng & Sister B Ng",
+            "Elder A & Sister B Ng",
         ),
         # Male missionary's sort name is second
         (
@@ -204,7 +204,7 @@ def test_parse_missing_senior_value(
                     home_unit="Unit",
                 ),
             ],
-            "Elder B Ng & Sister A Ng",
+            "Elder B & Sister A Ng",
         ),
     ],
 )
