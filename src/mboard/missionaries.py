@@ -10,6 +10,7 @@ from lcr_session.urls import ChurchUrl
 from mboard.database import Database
 
 REFRESH_INTERVAL = timedelta(minutes=2)
+SENIOR_AGE = 40
 
 logger = logging.getLogger(__name__)
 
@@ -109,6 +110,7 @@ class Missionaries:
             "lcr", "api/orgs/full-time-missionaries?lang=eng&unitNumber={parent_unit}"
         )
         missionaries_data = await self.lcr_session.get_json(url)
+        logger.info("LCR missionaries: %d", len(missionaries_data))
         missionaries = [
             self._parse_lcr_data(missionary_data)
             for missionary_data in missionaries_data
@@ -117,6 +119,7 @@ class Missionaries:
         missionaries = self._merge_couple_missionaries(missionaries)
         missionaries = sorted(missionaries, key=lambda m: m.sort_name)
         self.db["missionaries"] = missionaries
+        logger.info("Saved missionaries: %d", len(missionaries))
 
     def _parse_lcr_data(self, missionary_data: dict) -> Missionary:
         """Parse missionary data from LCR API response."""
@@ -142,12 +145,24 @@ class Missionaries:
             end = end_date.strftime("%b %Y")
         dates_serving = f"{start} - {end}" if start and end else ""
 
+        # Sometimes "seniorMissionary" is not set, fall back to an age check.
+        senior = missionary_data.get("seniorMissionary")
+        if not senior:
+            birth_date = missionary_data.get("member", {}).get("birthDate")
+            if birth_date:
+                # Birth date is in the format "YYYYMMDD"
+                birth_date = datetime.strptime(birth_date, "%Y%m%d").astimezone()
+                age = (datetime.now(UTC) - birth_date).days // 365
+                senior = age > SENIOR_AGE
+            else:
+                senior = False  # Default to False if no birth date is available
+
         return Missionary(
             id=missionary_data.get("missionaryIndividualId", 0),
             name=display_name,
             sort_name=sort_name,
             gender=gender,
-            senior=missionary_data.get("seniorMissionary", False),
+            senior=senior,
             mission=missionary_data.get("missionName", ""),
             dates_serving=dates_serving,
             home_unit=missionary_data.get("missionaryHomeUnitName", ""),
@@ -192,6 +207,7 @@ class Missionaries:
                     else:
                         missionary.name = f"{companion.name} & {missionary.name}"
                         missionary.sort_name = companion.sort_name
+                    logger.info("Merged couple: %s", missionary.name)
             result_missionaries.append(missionary)
         return result_missionaries
 

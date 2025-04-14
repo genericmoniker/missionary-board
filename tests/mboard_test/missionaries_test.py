@@ -7,14 +7,11 @@ from pathlib import Path
 from typing import Any
 
 import pytest
-from mimesis import Generic
 
 from lcr_session.session import LcrSession
 from lcr_session.urls import ChurchUrl
 from mboard.database import Database
 from mboard.missionaries import Missionaries, Missionary
-
-generic = Generic()
 
 
 class FakeLcrSession(LcrSession):
@@ -139,6 +136,23 @@ def test_parse_lcr_data(
     assert missionary.senior is True
     assert missionary.mission == "Philippines Cebu"
     assert missionary.home_unit == "Maple Grove Ward"
+
+
+def test_parse_missing_senior_value(
+    tmp_path: Path, db: Database, lcr_json_data: list[dict]
+) -> None:
+    """If seniorMissionary value is missing, fall back to an age check."""
+    missionaries = Missionaries(db, tmp_path, FakeLcrSession())
+
+    data = lcr_json_data[1]  # young Emily Johnson
+    data["seniorMissionary"] = None
+    missionary = missionaries._parse_lcr_data(data)
+    assert missionary.senior is False
+
+    data = lcr_json_data[2]  # senior Robert Thompson
+    data["seniorMissionary"] = None
+    missionary = missionaries._parse_lcr_data(data)
+    assert missionary.senior is True
 
 
 @pytest.mark.parametrize(
