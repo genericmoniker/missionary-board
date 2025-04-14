@@ -2,5 +2,7 @@
 
 - [x] rewrite/fix unit tests
 - [x] ruff errors
+- [x] missionary couples
 - [ ] photo finding
-- [ ] missionary couples
+- [ ] decrease LCR refresh frequency
+- [ ] also serving page

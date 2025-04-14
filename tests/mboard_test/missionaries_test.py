@@ -1,5 +1,6 @@
 """Tests for the missionaries module."""
 
+# ruff: noqa: FBT003 SLF001 PLR2004
 import json
 from datetime import UTC, datetime
 from pathlib import Path
@@ -63,7 +64,7 @@ async def test_refresh_gets_new_missionary_data(
     assert lcr_client.get_json_called
     missionaries_items, next_offset = missionaries.list_range(0, 4)
     assert missionaries_items
-    assert len(missionaries_items) == 4  # noqa: PLR2004
+    assert len(missionaries_items) == 3  # 2 young missionaries and 1 senior couple
     assert next_offset == 0
 
 
@@ -79,7 +80,7 @@ async def test_refresh_updates_missionary_data(
 
     await missionaries.refresh()
 
-    assert len(db["missionaries"]) == 4  # noqa: PLR2004
+    assert len(db["missionaries"]) == 3  # 2 young missionaries and 1 senior couple
     assert (
         "Wilson" in db["missionaries"][0].name
         or "Johnson" in db["missionaries"][0].name
@@ -100,32 +101,218 @@ async def test_missionaries_sorted_by_name(
     listed_range, _ = missionaries.list_range(0, 10)
 
     assert listed_range[0].sort_name == "Johnson, Emily"
-    assert listed_range[1].sort_name == "Thompson, Mary"
-    assert listed_range[2].sort_name == "Thompson, Robert"
-    assert listed_range[3].sort_name == "Wilson, Thomas"
+    assert listed_range[1].sort_name == "Thompson, Robert"
+    assert listed_range[2].sort_name == "Wilson, Thomas"
 
 
 def test_parse_lcr_data(
     tmp_path: Path, db: Database, lcr_json_data: list[dict]
 ) -> None:
-    lcr_client = FakeLcrSession()
-    missionaries = Missionaries(db, tmp_path, lcr_client)
+    missionaries = Missionaries(db, tmp_path, FakeLcrSession())
 
     data = lcr_json_data[0]  # Thomas Wilson
-    missionary = missionaries._parse_lcr_data(data)  # noqa: SLF001
-
+    missionary = missionaries._parse_lcr_data(data)
+    assert missionary.id == 87654321098
     assert missionary.name == "Elder Thomas Wilson"
     assert missionary.sort_name == "Wilson, Thomas"
-    assert "Guatemala Guatemala City East" in missionary.details
-    assert "Sego Lily Ward" in missionary.details
+    assert missionary.gender == "MALE"
+    assert missionary.senior is False
+    assert missionary.mission == "Guatemala Guatemala City East"
+    assert missionary.home_unit == "Sego Lily Ward"
 
     data = lcr_json_data[1]  # Emily Johnson
-    missionary = missionaries._parse_lcr_data(data)  # noqa: SLF001
-
+    missionary = missionaries._parse_lcr_data(data)
+    assert missionary.id == 76543210987
     assert missionary.name == "Sister Emily Johnson"
     assert missionary.sort_name == "Johnson, Emily"
-    assert "Brazil Rio de Janeiro South" in missionary.details
-    assert "Sego Lily Ward" in missionary.details
+    assert missionary.gender == "FEMALE"
+    assert missionary.senior is False
+    assert missionary.mission == "Brazil Rio de Janeiro South"
+    assert missionary.home_unit == "Sego Lily Ward"
+
+    data = lcr_json_data[2]  # Robert Thompson
+    missionary = missionaries._parse_lcr_data(data)
+    assert missionary.id == 12345678910
+    assert missionary.name == "Elder Robert Thompson"
+    assert missionary.sort_name == "Thompson, Robert"
+    assert missionary.gender == "MALE"
+    assert missionary.senior is True
+    assert missionary.mission == "Philippines Cebu"
+    assert missionary.home_unit == "Maple Grove Ward"
+
+
+@pytest.mark.parametrize(
+    ("missionaries_data", "expected_names"),
+    [
+        # Male missionary's sort name is first
+        (
+            [
+                Missionary(
+                    id=0,
+                    name="Elder A Ng",
+                    sort_name="Ng, A",
+                    gender="MALE",
+                    senior=True,
+                    mission="Mission",
+                    home_unit="Unit",
+                ),
+                Missionary(
+                    id=1,
+                    name="Sister B Ng",
+                    sort_name="Ng, B",
+                    gender="FEMALE",
+                    senior=True,
+                    mission="Mission",
+                    home_unit="Unit",
+                ),
+            ],
+            "Elder A Ng & Sister B Ng",
+        ),
+        # Male missionary's sort name is second
+        (
+            [
+                Missionary(
+                    id=1,
+                    name="Elder B Ng",
+                    sort_name="Ng, B",
+                    gender="MALE",
+                    senior=True,
+                    mission="Mission",
+                    home_unit="Unit",
+                ),
+                Missionary(
+                    id=0,
+                    name="Sister A Ng",
+                    sort_name="Ng, A",
+                    gender="FEMALE",
+                    senior=True,
+                    mission="Mission",
+                    home_unit="Unit",
+                ),
+            ],
+            "Elder B Ng & Sister A Ng",
+        ),
+    ],
+)
+def test_merge_couple(
+    tmp_path: Path,
+    db: Database,
+    missionaries_data: list[Missionary],
+    expected_names: str,
+) -> None:
+    """Couples are merged into one entry, with the Elder's name first."""
+    missionaries = Missionaries(db, tmp_path, FakeLcrSession())
+
+    result = missionaries._merge_couple_missionaries(missionaries_data)
+
+    assert len(result) == 1
+    assert result[0].name == expected_names
+
+
+@pytest.mark.parametrize(
+    "missionaries_data",
+    [
+        # Siblings different missions
+        [
+            Missionary(
+                id=0,
+                name="Elder A Ng",
+                sort_name="Ng, A",
+                gender="MALE",
+                senior=True,
+                mission="Mission1",
+                home_unit="Unit",
+                dates_serving="Mar 2025 - Sep 2026",
+            ),
+            Missionary(
+                id=1,
+                name="Sister B Ng",
+                sort_name="Ng, B",
+                gender="FEMALE",
+                senior=True,
+                mission="Mission2",
+                home_unit="Unit",
+                dates_serving="Mar 2025 - Sep 2026",
+            ),
+        ],
+        # Siblings different wards
+        [
+            Missionary(
+                id=0,
+                name="Elder A Ng",
+                sort_name="Ng, A",
+                gender="MALE",
+                senior=True,
+                mission="Mission",
+                home_unit="Unit1",
+                dates_serving="Mar 2025 - Mar 2027",
+            ),
+            Missionary(
+                id=1,
+                name="Sister B Ng",
+                sort_name="Ng, B",
+                gender="FEMALE",
+                senior=True,
+                mission="Mission",
+                home_unit="Unit2",
+                dates_serving="Mar 2025 - Sep 2026",
+            ),
+        ],
+        # Twins called to the same mission
+        [
+            Missionary(
+                id=0,
+                name="Sister A Ng",
+                sort_name="Ng, A",
+                gender="FEMALE",
+                senior=True,
+                mission="Mission",
+                home_unit="Unit",
+                dates_serving="Mar 2025 - Sep 2026",
+            ),
+            Missionary(
+                id=1,
+                name="Sister B Ng",
+                sort_name="Ng, B",
+                gender="FEMALE",
+                senior=True,
+                mission="Mission",
+                home_unit="Unit",
+                dates_serving="Mar 2025 - Sep 2026",
+            ),
+        ],
+        # Fraternal twins called to the same mission
+        [
+            Missionary(
+                id=0,
+                name="Elder A Ng",
+                sort_name="Ng, A",
+                gender="MALE",
+                senior=True,
+                mission="Mission",
+                home_unit="Unit",
+                dates_serving="Mar 2025 - Mar 2027",
+            ),
+            Missionary(
+                id=1,
+                name="Sister B Ng",
+                sort_name="Ng, B",
+                gender="FEMALE",
+                senior=True,
+                mission="Mission",
+                home_unit="Unit",
+                dates_serving="Mar 2025 - Sep 2026",
+            ),
+        ],
+    ],
+)
+def test_merge_non_couple_cases(
+    tmp_path: Path, db: Database, missionaries_data: list[Missionary]
+) -> None:
+    """Missionaries are not merged if they are not a couple."""
+    missionaries = Missionaries(db, tmp_path, FakeLcrSession())
+    result = missionaries._merge_couple_missionaries(missionaries_data)
+    assert len(result) == 2
 
 
 @pytest.mark.parametrize(

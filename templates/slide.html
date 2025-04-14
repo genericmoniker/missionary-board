@@ -32,7 +32,7 @@
                     </p>
                     <p class="mt-5">
                         <a href="{{ url_for('setup') }}">
-                            <img src="{{ url_for('static', path='/cog.svg') }}" 
+                            <img src="{{ url_for('static', path='/cog.svg') }}"
                                 style="width: 20px; height: 20px;filter: invert(80%);vertical-align: middle;"
                                 alt="setup" title="{% if refresh_error %}{{refresh_error}}{% endif %}">
                             Setup
@@ -58,9 +58,9 @@
                 <div class="info">
                     <p class="name">{{missionary.name}}</p>
                     <p>
-                        {% for detail in missionary.details %}
-                        <span class="detail">{{detail}}</span><br />
-                        {% endfor %}
+                        <span class="detail">{{missionary.mission}}</span><br />
+                        <span class="detail">{{missionary.dates_serving}}</span><br />
+                        <span class="detail">{{missionary.home_unit}}</span><br />
                     </p>
                 </div>
             </div>

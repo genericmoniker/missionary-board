@@ -1,7 +1,7 @@
 """Missionaries repository."""
 
 import logging
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
@@ -18,11 +18,22 @@ logger = logging.getLogger(__name__)
 class Missionary:
     """Missionary data."""
 
-    name: str
-    sort_name: str
+    id: int = 0
+    name: str = ""
+    sort_name: str = ""
+    gender: str = ""
+    senior: bool = False
+    mission: str = ""
+    dates_serving: str = ""
+    home_unit: str = ""
     image_path: str = ""
     image_base_url: str = ""
-    details: list[str] = field(default_factory=list)
+
+    def __eq__(self, other: object) -> bool:
+        """Check if two missionaries are equal based on their IDs."""
+        if not isinstance(other, Missionary):
+            return NotImplemented
+        return self.id == other.id
 
 
 class Missionaries:
@@ -98,19 +109,21 @@ class Missionaries:
             "lcr", "api/orgs/full-time-missionaries?lang=eng&unitNumber={parent_unit}"
         )
         missionaries_data = await self.lcr_session.get_json(url)
-        missionaries = [self._parse_lcr_data(item) for item in missionaries_data]
-        self.db["missionaries"] = sorted(missionaries, key=lambda m: m.sort_name)
+        missionaries = [
+            self._parse_lcr_data(missionary_data)
+            for missionary_data in missionaries_data
+            if self._filter(missionary_data)
+        ]
+        missionaries = self._merge_couple_missionaries(missionaries)
+        missionaries = sorted(missionaries, key=lambda m: m.sort_name)
+        self.db["missionaries"] = missionaries
 
-    def _parse_lcr_data(self, item: dict) -> Missionary:
+    def _parse_lcr_data(self, missionary_data: dict) -> Missionary:
         """Parse missionary data from LCR API response."""
-        sort_name = item.get("missionaryName")
-        if not sort_name:
-            # Some missionaries have no name, so we skip them.
-            logger.warning("Placeholder for missionary with no name: %s", item)
-            return Missionary(name="", sort_name="")
+        sort_name = missionary_data.get("missionaryName", "")
         display_name = sort_name.split(", ")[::-1]
         display_name = " ".join(display_name)
-        gender = item.get("member", {}).get("gender")
+        gender = missionary_data.get("member", {}).get("gender")
         if gender == "FEMALE":
             display_name = f"Sister {display_name}"
         elif gender == "MALE":
@@ -118,26 +131,69 @@ class Missionaries:
 
         # Dates look like "20230814"
         start = ""
-        start_date_iso = item.get("startDate")
+        start_date_iso = missionary_data.get("startDate")
         if start_date_iso:
             start_date = datetime.strptime(start_date_iso, "%Y%m%d").astimezone()
             start = start_date.strftime("%b %Y")  # "Aug 2023"
         end = ""
-        end_date_iso = item.get("endDate")
+        end_date_iso = missionary_data.get("endDate")
         if end_date_iso:
             end_date = datetime.strptime(end_date_iso, "%Y%m%d").astimezone()
             end = end_date.strftime("%b %Y")
         dates_serving = f"{start} - {end}" if start and end else ""
 
         return Missionary(
+            id=missionary_data.get("missionaryIndividualId", 0),
             name=display_name,
             sort_name=sort_name,
-            details=[
-                item.get("missionName", ""),
-                dates_serving,
-                item.get("missionaryHomeUnitName", ""),
-            ],
+            gender=gender,
+            senior=missionary_data.get("seniorMissionary", False),
+            mission=missionary_data.get("missionName", ""),
+            dates_serving=dates_serving,
+            home_unit=missionary_data.get("missionaryHomeUnitName", ""),
         )
+
+    def _filter(self, missionary_data: dict) -> bool:
+        """Filter missionaries to include."""
+        # We expect missionaries to have a name, but just for safety, check for it now
+        # because we count on it later.
+        if not missionary_data.get("missionaryName"):
+            return False
+        # Filter out missionaries who are not currently serving.
+        return missionary_data.get("status") == "SERVING"
+
+    def _merge_couple_missionaries(
+        self, missionaries: list[Missionary]
+    ) -> list[Missionary]:
+        """Merge couple missionaries into one entry."""
+        result_missionaries = []
+        merged_ids = set()
+        for missionary in missionaries:
+            if missionary.id in merged_ids:
+                continue
+            if missionary.senior:
+                companion = next(
+                    (
+                        m
+                        for m in missionaries
+                        if m.senior
+                        and m != missionary
+                        and m.gender != missionary.gender
+                        and m.mission == missionary.mission
+                        and m.home_unit == missionary.home_unit
+                        and m.dates_serving == missionary.dates_serving
+                    ),
+                    None,
+                )
+                if companion:
+                    merged_ids.add(companion.id)
+                    if missionary.gender == "MALE":
+                        missionary.name = f"{missionary.name} & {companion.name}"
+                    else:
+                        missionary.name = f"{companion.name} & {missionary.name}"
+                        missionary.sort_name = companion.sort_name
+            result_missionaries.append(missionary)
+        return result_missionaries
 
     @staticmethod
     def _format_image_path(item: dict) -> str:

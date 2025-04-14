@@ -15,7 +15,7 @@ def test_redirect_to_setup_if_no_token(client: httpx.Client) -> None:
     assert response.next_request.url.path == "/setup"
 
 
-def test_show_slides_if_token(client: httpx.Client, db: Database) -> None:
+def test_show_slides_if_credentials(client: httpx.Client, db: Database) -> None:
     db["last_refresh"] = datetime.max
     db["church_username"] = "foo"
     db["church_password"] = "bar"
