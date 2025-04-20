@@ -1,7 +1,7 @@
 """Missionaries repository."""
 
 import logging
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
@@ -28,7 +28,6 @@ class Missionary:
     dates_serving: str = ""
     home_unit: str = ""
     image_path: str = ""
-    image_base_url: str = ""
 
     def __eq__(self, other: object) -> bool:
         """Check if two missionaries are equal based on their IDs."""
@@ -40,10 +39,10 @@ class Missionary:
 class Missionaries:
     """Missionaries repository/cache."""
 
-    def __init__(self, db: Database, image_dir: Path, lcr_session: LcrSession) -> None:
+    def __init__(self, db: Database, photos_dir: Path, lcr_session: LcrSession) -> None:
         """Initialize the missionary repository."""
         self.db = db
-        self.image_dir = image_dir
+        self.photos_dir = photos_dir
         self.lcr_session = lcr_session
 
     @staticmethod
@@ -56,6 +55,7 @@ class Missionaries:
     async def refresh(self) -> None:
         """Refresh the cache of missionaries from LCR."""
         if not self._needs_refresh():
+            self._photo_only_refresh()
             return
 
         try:
@@ -105,6 +105,20 @@ class Missionaries:
         )
         return now - last_refresh > REFRESH_INTERVAL
 
+    def _photo_only_refresh(self) -> None:
+        """Refresh only the photos of the missionaries.
+
+        This is used when the missionaries are already in the database, but we want to
+        update their photos.
+        """
+        missionaries = self.db.get("missionaries", [])
+        for missionary in missionaries:
+            image_path = self._find_photo(missionary.id)
+            if image_path != missionary.image_path:
+                logger.info("Photo found for %s (%s)", missionary.id, missionary.name)
+                missionary.image_path = image_path
+        self.db["missionaries"] = missionaries
+
     async def _sync_missionaries(self) -> None:
         url = ChurchUrl(
             "lcr", "api/orgs/full-time-missionaries?lang=eng&unitNumber={parent_unit}"
@@ -112,17 +126,26 @@ class Missionaries:
         missionaries_data = await self.lcr_session.get_json(url)
         logger.info("LCR missionaries: %d", len(missionaries_data))
         missionaries = [
-            self._parse_lcr_data(missionary_data)
+            self._create_missionary(missionary_data)
             for missionary_data in missionaries_data
             if self._filter(missionary_data)
         ]
+        total = len(missionaries)
         missionaries = self._merge_couple_missionaries(missionaries)
+        potential_photos = len(missionaries)
         missionaries = sorted(missionaries, key=lambda m: m.sort_name)
+        with_photo = [m for m in missionaries if m.image_path]
+        without_photo = [m for m in missionaries if not m.image_path]
+        for missionary in without_photo:
+            logger.info("No photo: %s (%s)", missionary.id, missionary.name)
+        photo_percent = (
+            len(with_photo) / potential_photos * 100 if potential_photos else 0
+        )
         self.db["missionaries"] = missionaries
-        logger.info("Saved missionaries: %d", len(missionaries))
+        logger.info("Missionary count: %d (%.0f%% with photo)", total, photo_percent)
 
-    def _parse_lcr_data(self, missionary_data: dict) -> Missionary:
-        """Parse missionary data from LCR API response."""
+    def _create_missionary(self, missionary_data: dict) -> Missionary:
+        """Create a missionary data from LCR API response and photos."""
         sort_name = missionary_data.get("missionaryName", "")
         display_name = sort_name.split(", ")[::-1]
         display_name = " ".join(display_name)
@@ -155,10 +178,14 @@ class Missionaries:
                 age = (datetime.now(UTC) - birth_date).days // 365
                 senior = age > SENIOR_AGE
             else:
-                senior = False  # Default to False if no birth date is available
+                senior = False  # Default to False if no birth date is available.
+
+        # Look for a photo.
+        missionary_id = missionary_data.get("missionaryIndividualId", 0)
+        image_path = self._find_photo(missionary_id)
 
         return Missionary(
-            id=missionary_data.get("missionaryIndividualId", 0),
+            id=missionary_id,
             name=display_name,
             sort_name=sort_name,
             gender=gender,
@@ -166,6 +193,7 @@ class Missionaries:
             mission=missionary_data.get("missionName", ""),
             dates_serving=dates_serving,
             home_unit=missionary_data.get("missionaryHomeUnitName", ""),
+            image_path=image_path,
         )
 
     def _filter(self, missionary_data: dict) -> bool:
@@ -203,12 +231,16 @@ class Missionaries:
                 if companion:
                     merged_ids.add(companion.id)
                     if missionary.gender == "MALE":
+                        # If this is the Elder, update the name to include the Sister.
                         elder = self._omit_last_name(missionary.name)
                         missionary.name = f"{elder} & {companion.name}"
                     else:
+                        # If the Sister, save the name and copy the Elder's data.
                         elder = self._omit_last_name(companion.name)
-                        missionary.name = f"{elder} & {missionary.name}"
-                        missionary.sort_name = companion.sort_name
+                        name = f"{elder} & {missionary.name}"
+                        for key, value in asdict(companion).items():
+                            setattr(missionary, key, value)
+                        missionary.name = name
                     logger.info("Merged couple: %s", missionary.name)
             result_missionaries.append(missionary)
         return result_missionaries
@@ -222,27 +254,16 @@ class Missionaries:
         split_name = name.split()
         return " ".join(split_name[:-1])
 
-    @staticmethod
-    def _format_image_path(item: dict) -> str:
-        full_filename = Path(item["filename"])
-        filename = full_filename.stem
-        extension = full_filename.suffix
-        # Include the dimensions in the name to re-download if the image is cropped.
-        width = item["mediaMetadata"]["width"]
-        height = item["mediaMetadata"]["height"]
-        return f"{filename}_{width}x{height}{extension}"
+    def _find_photo(self, missionary_id: int) -> str:
+        """Find a photo for the missionary with the given id.
 
-    async def _cache_images(self, missionaries: list[Missionary]) -> set:
-        current_image_paths = set()
-        for missionary in missionaries:
-            image_path = self.image_dir / missionary.image_path
-            current_image_paths.add(image_path)
-            if not image_path.exists():
-                image_data = await self.client.download(missionary.image_base_url)
-                image_path.write_bytes(image_data)
-        return current_image_paths
+        The filename should start with the missionary ID and may optionally be followed
+        by anything else, such as their name, to make managing the photos easier.
 
-    def _clean_up_old_images(self, current_image_paths: set) -> None:
-        for image_path in self.image_dir.iterdir():
-            if image_path not in current_image_paths:
-                image_path.unlink()
+        Returns the filename of the photo if found, otherwise an empty string.
+        """
+        try:
+            photo = next(self.photos_dir.glob(f"{missionary_id}*"))
+            return photo.name
+        except StopIteration:
+            return ""

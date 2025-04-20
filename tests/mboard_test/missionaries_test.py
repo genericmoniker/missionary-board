@@ -48,6 +48,30 @@ async def test_refresh_skipped_if_not_needed(tmp_path: Path, db: Database) -> No
 
 
 @pytest.mark.asyncio
+async def test_photo_refreshed_without_data(tmp_path: Path, db: Database) -> None:
+    """Missionary photos are refreshed on each call, even if LCR data is fresh."""
+    db["last_refresh"] = datetime.now(tz=UTC)  # No full LCR refresh is needed.
+    db["missionaries"] = [
+        Missionary(
+            id=123,
+            name="Elder Robert Thompson",
+            image_path="",  # No photo path yet.
+        )
+    ]
+
+    lcr_client = FakeLcrSession()
+    missionaries = Missionaries(db, tmp_path, lcr_client)
+
+    # Simulate a photo file being present.
+    (tmp_path / "123.jpg").touch()
+
+    await missionaries.refresh()
+
+    assert not lcr_client.get_json_called
+    assert db["missionaries"][0].image_path == "123.jpg"
+
+
+@pytest.mark.asyncio
 async def test_refresh_gets_new_missionary_data(
     tmp_path: Path, db: Database, lcr_json_data: list[dict]
 ) -> None:
@@ -108,7 +132,7 @@ def test_parse_lcr_data(
     missionaries = Missionaries(db, tmp_path, FakeLcrSession())
 
     data = lcr_json_data[0]  # Thomas Wilson
-    missionary = missionaries._parse_lcr_data(data)
+    missionary = missionaries._create_missionary(data)
     assert missionary.id == 87654321098
     assert missionary.name == "Elder Thomas Wilson"
     assert missionary.sort_name == "Wilson, Thomas"
@@ -118,7 +142,7 @@ def test_parse_lcr_data(
     assert missionary.home_unit == "Sego Lily Ward"
 
     data = lcr_json_data[1]  # Emily Johnson
-    missionary = missionaries._parse_lcr_data(data)
+    missionary = missionaries._create_missionary(data)
     assert missionary.id == 76543210987
     assert missionary.name == "Sister Emily Johnson"
     assert missionary.sort_name == "Johnson, Emily"
@@ -128,7 +152,7 @@ def test_parse_lcr_data(
     assert missionary.home_unit == "Sego Lily Ward"
 
     data = lcr_json_data[2]  # Robert Thompson
-    missionary = missionaries._parse_lcr_data(data)
+    missionary = missionaries._create_missionary(data)
     assert missionary.id == 12345678910
     assert missionary.name == "Elder Robert Thompson"
     assert missionary.sort_name == "Thompson, Robert"
@@ -136,6 +160,34 @@ def test_parse_lcr_data(
     assert missionary.senior is True
     assert missionary.mission == "Philippines Cebu"
     assert missionary.home_unit == "Maple Grove Ward"
+
+
+@pytest.mark.parametrize(
+    ("filename", "expected_path"),
+    [
+        ("12345678910.jpg", "12345678910.jpg"),
+        ("12345678910.jpeg", "12345678910.jpeg"),
+        ("12345678910-robert-thompson.jpg", "12345678910-robert-thompson.jpg"),
+        ("123.jpg", ""),
+        ("", ""),
+    ],
+)
+def test_photo_finding(
+    filename: str,
+    expected_path: str,
+    tmp_path: Path,
+    db: Database,
+    lcr_json_data: list[dict],
+) -> None:
+    missionaries = Missionaries(db, tmp_path, FakeLcrSession())
+
+    if filename:
+        (tmp_path / filename).touch()
+
+    data = lcr_json_data[2]  # Robert Thompson
+    missionary = missionaries._create_missionary(data)
+
+    assert missionary.image_path == expected_path
 
 
 def test_parse_missing_senior_value(
@@ -146,17 +198,17 @@ def test_parse_missing_senior_value(
 
     data = lcr_json_data[1]  # young Emily Johnson
     data["seniorMissionary"] = None
-    missionary = missionaries._parse_lcr_data(data)
+    missionary = missionaries._create_missionary(data)
     assert missionary.senior is False
 
     data = lcr_json_data[2]  # senior Robert Thompson
     data["seniorMissionary"] = None
-    missionary = missionaries._parse_lcr_data(data)
+    missionary = missionaries._create_missionary(data)
     assert missionary.senior is True
 
 
 @pytest.mark.parametrize(
-    ("missionaries_data", "expected_names"),
+    ("missionaries_data", "expected_names", "expected_id"),
     [
         # Male missionary's sort name is first
         (
@@ -169,6 +221,7 @@ def test_parse_missing_senior_value(
                     senior=True,
                     mission="Mission",
                     home_unit="Unit",
+                    image_path="0.jpg",
                 ),
                 Missionary(
                     id=1,
@@ -178,22 +231,15 @@ def test_parse_missing_senior_value(
                     senior=True,
                     mission="Mission",
                     home_unit="Unit",
+                    image_path="1.jpg",
                 ),
             ],
             "Elder A & Sister B Ng",
+            0,
         ),
         # Male missionary's sort name is second
         (
             [
-                Missionary(
-                    id=1,
-                    name="Elder B Ng",
-                    sort_name="Ng, B",
-                    gender="MALE",
-                    senior=True,
-                    mission="Mission",
-                    home_unit="Unit",
-                ),
                 Missionary(
                     id=0,
                     name="Sister A Ng",
@@ -202,17 +248,30 @@ def test_parse_missing_senior_value(
                     senior=True,
                     mission="Mission",
                     home_unit="Unit",
+                    image_path="0.jpg",
+                ),
+                Missionary(
+                    id=1,
+                    name="Elder B Ng",
+                    sort_name="Ng, B",
+                    gender="MALE",
+                    senior=True,
+                    mission="Mission",
+                    home_unit="Unit",
+                    image_path="0.jpg",
                 ),
             ],
             "Elder B & Sister A Ng",
+            1,
         ),
     ],
 )
 def test_merge_couple(
-    tmp_path: Path,
-    db: Database,
     missionaries_data: list[Missionary],
     expected_names: str,
+    expected_id: int,
+    tmp_path: Path,
+    db: Database,
 ) -> None:
     """Couples are merged into one entry, with the Elder's name first."""
     missionaries = Missionaries(db, tmp_path, FakeLcrSession())
@@ -221,6 +280,7 @@ def test_merge_couple(
 
     assert len(result) == 1
     assert result[0].name == expected_names
+    assert result[0].id == expected_id
 
 
 @pytest.mark.parametrize(
@@ -341,11 +401,11 @@ def test_merge_non_couple_cases(
     ],
 )
 def test_list_returns_the_correct_next_offset(  # noqa: PLR0913
-    tmp_path: Path,
     count: int,
     offset: int,
     limit: int,
     expected_next_offset: int,
+    tmp_path: Path,
     db: Database,
 ) -> None:
     db["missionaries"] = [
