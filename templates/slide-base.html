@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Missionaries</title>
+    <link rel="icon" href="{{ url_for('static', path='favicon.ico') }}" type="image/x-icon" />
+    <meta http-equiv="refresh" content="30; url={{ next_url }}">
+    {% block styles %}{% endblock %}
+</head>
+
+<body id="body" class="fadein">
+    <section class="section">
+        <div class="container">
+            {% block content %}{% endblock %}
+        </div>
+    </section>
+</body>
+
+<script>
+    window.onbeforeunload = function (e) {
+        document.getElementById('body').className = 'fadeout';
+    }
+</script>
+
+</html>

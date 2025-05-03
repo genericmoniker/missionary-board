@@ -1,6 +1,7 @@
 """Missionaries repository."""
 
 import logging
+from collections.abc import Callable
 from dataclasses import asdict, dataclass
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
@@ -78,14 +79,16 @@ class Missionaries:
         self,
         offset: int = 0,
         limit: int = 10,
+        filter_: Callable[[Missionary], bool] | None = None,
     ) -> tuple[list[Missionary], int]:
         """List the missionaries.
 
         Returns a tuple of the list of missionaries and the offset of the next
         range of results.
         """
+        filter_ = filter_ or (lambda _: True)
         try:
-            missionaries = self.db.get("missionaries", [])
+            missionaries = [m for m in self.db.get("missionaries", []) if filter_(m)]
         except (TypeError, ValueError):
             return [], 0
         next_offset = offset + limit if offset + limit < len(missionaries) else 0
@@ -109,14 +112,19 @@ class Missionaries:
         """Refresh only the photos of the missionaries.
 
         This is used when the missionaries are already in the database, but we want to
-        update their photos.
+        potentially update their photos.
         """
         missionaries = self.db.get("missionaries", [])
         for missionary in missionaries:
             image_path = self._find_photo(missionary.id)
-            if image_path != missionary.image_path:
-                logger.info("Photo found for %s (%s)", missionary.id, missionary.name)
-                missionary.image_path = image_path
+            if image_path:
+                if image_path != missionary.image_path:
+                    logger.info(
+                        "Photo found for %s (%s)", missionary.id, missionary.name
+                    )
+            elif missionary.image_path:
+                logger.info("Photo removed for %s (%s)", missionary.id, missionary.name)
+            missionary.image_path = image_path
         self.db["missionaries"] = missionaries
 
     async def _sync_missionaries(self) -> None:
@@ -133,14 +141,15 @@ class Missionaries:
         total = len(missionaries)
         missionaries = self._merge_couple_missionaries(missionaries)
         potential_photos = len(missionaries)
-        missionaries = sorted(missionaries, key=lambda m: m.sort_name)
-        with_photo = [m for m in missionaries if m.image_path]
         without_photo = [m for m in missionaries if not m.image_path]
         for missionary in without_photo:
             logger.info("No photo: %s (%s)", missionary.id, missionary.name)
         photo_percent = (
-            len(with_photo) / potential_photos * 100 if potential_photos else 0
+            (potential_photos - len(without_photo)) / potential_photos * 100
+            if potential_photos
+            else 0
         )
+        missionaries = sorted(missionaries, key=lambda m: m.sort_name)
         self.db["missionaries"] = missionaries
         logger.info("Missionary count: %d (%.0f%% with photo)", total, photo_percent)
 

@@ -1,0 +1,54 @@
+{% extends 'slide-base.html' %}
+
+{% block styles %}
+<link href="{{ url_for('static', path='/slide.css') }}" rel="stylesheet">
+{% endblock %}
+
+{% block content %}
+{% if missionaries|length == 0 %}
+<section class="hero is-primary">
+    <div class="hero-body">
+        <p class="title">
+            Loading...
+        </p>
+        <p class="subtitle">
+            Looking for missionaries to display.
+        </p>
+        <p>
+            <progress class="progress is-info" max="100"></progress>
+        </p>
+        <p class="mt-5">
+            <a href="{{ url_for('setup') }}">
+                <img src="{{ url_for('static', path='/cog.svg') }}"
+                    style="width: 20px; height: 20px;filter: invert(80%);vertical-align: middle;"
+                    alt="setup" title="{% if refresh_error %}{{refresh_error}}{% endif %}">
+                Setup
+            </a>
+        </p>
+    </div>
+</section>
+{% else %}
+<div id="setup" class="{% if refresh_error %}error{% endif %}">
+    <a href="{{ url_for('setup') }}">
+        <img src="{{ url_for('static', path='/cog.svg') }}"
+        alt="setup" title="{% if refresh_error %}{{refresh_error}}{% endif %}">
+    </a>
+</div>
+
+{% for missionary in missionaries %}
+<div class="card">
+    <div class="photo">
+        <img src="{{ url_for('photos', path=missionary.image_path) }}">
+    </div>
+    <div class="info">
+        <p class="name">{{missionary.name}}</p>
+        <p>
+            <span class="detail">{{missionary.mission}}</span><br />
+            <span class="detail">{{missionary.dates_serving}}</span><br />
+            <span class="detail">{{missionary.home_unit}}</span><br />
+        </p>
+    </div>
+</div>
+{% endfor %}
+{% endif %}
+{% endblock %}

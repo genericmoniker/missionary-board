@@ -1,0 +1,35 @@
+{% extends 'slide-base.html' %}
+
+{% block styles %}
+<link href="{{ url_for('static', path='/styles.css') }}" rel="stylesheet">
+{% endblock %}
+
+{% block content %}
+<section class="hero is-primary">
+    <div class="hero-body">
+        <p class="title">
+            Also serving
+        </p>
+        <p class="subtitle">
+            Contact the stake clerk to add or update missionary photos.
+        </p>
+    </div>
+</section>
+
+<section class="section">
+    <div class="columns">
+        {% for column in missionaries|slice(4) %}
+        <div class="column is-one-quarter">
+            <ul>
+                {% for missionary in column %}
+                <div class="list-item mb-3">
+                    <li><b>{{missionary.name}}</b></li>
+                </div>
+                {% endfor %}
+            </ul>
+
+        </div>
+        {% endfor %}
+    </div>
+</section>
+{% endblock %}
