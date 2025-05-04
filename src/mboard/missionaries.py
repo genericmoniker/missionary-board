@@ -23,12 +23,14 @@ class Missionary:
     id: int = 0
     name: str = ""
     sort_name: str = ""
-    gender: str = ""
+    gender: str = ""  # "MALE" or "FEMALE"
+    couple: bool = False
     senior: bool = False
     mission: str = ""
     dates_serving: str = ""
     home_unit: str = ""
-    image_path: str = ""
+    image_path: str = ""  # Path to the photo in the photos directory
+    photo_url: str = ""  # Final potentially calculated URL for the photo
 
     def __eq__(self, other: object) -> bool:
         """Check if two missionaries are equal based on their IDs."""
@@ -56,11 +58,12 @@ class Missionaries:
     async def refresh(self) -> None:
         """Refresh the cache of missionaries from LCR."""
         if not self._needs_refresh():
-            self._photo_only_refresh()
+            self._photo_refresh()
             return
 
         try:
             await self._sync_missionaries()
+            self._photo_refresh()
         except Exception as e:  # noqa: BLE001
             error = f"{type(e).__name__}: {e}"
             last_refresh = self.db.get("last_refresh")
@@ -108,7 +111,7 @@ class Missionaries:
         )
         return now - last_refresh > REFRESH_INTERVAL
 
-    def _photo_only_refresh(self) -> None:
+    def _photo_refresh(self) -> None:
         """Refresh only the photos of the missionaries.
 
         This is used when the missionaries are already in the database, but we want to
@@ -125,6 +128,17 @@ class Missionaries:
             elif missionary.image_path:
                 logger.info("Photo removed for %s (%s)", missionary.id, missionary.name)
             missionary.image_path = image_path
+
+            # Determine the final photo URL.
+            if image_path:
+                missionary.photo_url = "/photos/" + image_path
+            elif missionary.couple:
+                missionary.photo_url = "/static/couple.png"
+            elif missionary.gender == "FEMALE":
+                missionary.photo_url = "/static/sister.png"
+            else:
+                missionary.photo_url = "/static/elder.png"
+
         self.db["missionaries"] = missionaries
 
     async def _sync_missionaries(self) -> None:
@@ -250,6 +264,7 @@ class Missionaries:
                         for key, value in asdict(companion).items():
                             setattr(missionary, key, value)
                         missionary.name = name
+                    missionary.couple = True
                     logger.info("Merged couple: %s", missionary.name)
             result_missionaries.append(missionary)
         return result_missionaries

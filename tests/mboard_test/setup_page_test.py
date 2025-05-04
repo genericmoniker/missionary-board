@@ -18,14 +18,14 @@ def test_error_on_empty_username(client: httpx.Client, db: Database) -> None:
     _login(client, db)
     response = client.post("/setup", data={"username": "", "password": "abc"})
     assert response.status_code == 200  # noqa: PLR2004
-    assert b"Username and password are required" in response.content
+    assert "Username and password are required" in response.text
 
 
 def test_error_on_empty_password(client: httpx.Client, db: Database) -> None:
     _login(client, db)
     response = client.post("/setup", data={"username": "", "password": "abc"})
     assert response.status_code == 200  # noqa: PLR2004
-    assert b"Username and password are required" in response.content
+    assert "Username and password are required" in response.text
 
 
 def test_disconnect(client: httpx.Client, db: Database) -> None:
@@ -48,7 +48,7 @@ def test_error_on_invalid_credentials(client: httpx.Client, db: Database) -> Non
         )
         response = client.post("/setup", data={"username": "foo", "password": "bar"})
     assert response.status_code == 200  # noqa: PLR2004
-    assert b"check your username and password" in response.content
+    assert "supplied credentials" in response.text
 
 
 def test_successful_setup(client: httpx.Client, db: Database) -> None:

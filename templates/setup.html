@@ -8,73 +8,99 @@
     <h1 class="title">Missionary Board Setup</h1>
 
     <div class="block">
-        {% if setup_error %}
-        <article class="message is-danger">
+        {% if flash %}
+        <article class="message is-{{ flash.category }} flash">
             <div class="message-header">
-                {{ setup_error }}
-            </div>
-            <div class="message-body">
-                {{ setup_error_description }}
+                {{ flash.message }}
             </div>
         </article>
         {% endif %}
     </div>
 
-    <div class="block">
-        {% if has_password %}
+    <section class="has-background-grey-dark p-5">
+        <h2 class="title is-4">Church Account</h2>
 
-        <p class="mb-4">Connected to Leader and Clerk Resources as <b>{{ username }}</b>.</p>
+        <div class="block">
+            {% if has_password %}
 
-        <form action="/setup" method="post" style="display: inline;">
-            <input type="hidden" name="action" value="disconnect">
-            <button type="submit" class="button is-danger">Disconnect Church Account</button>
+            <p class="mb-4">Connected to Leader and Clerk Resources as <b>{{ username }}</b>.</p>
+
+            <form action="/setup" method="post" style="display: inline;">
+                <input type="hidden" name="action" value="disconnect">
+                <button type="submit" class="button is-danger">Disconnect Church Account</button>
+            </form>
+
+            {% else %}
+
+            <p><b>To connect to Leader and Clerk Resources enter your Church Account credentials.</b></p>
+            <br />
+
+            {% endif %}
+        </div>
+
+        <form action="" method="post">
+            <div class="field">
+                <label for="username" class="label">Username</label>
+                <div class="control">
+                    <input type="text" id="username" name="username" value="{{ username }}" class="input" />
+                </div>
+            </div>
+
+            <div class="field">
+                <label for="password" class="label">Password</label>
+                <div class="control">
+                    <input type="password" id="password" name="password" value="{{ password }}" class="input"
+                        placeholder="{{ 'Unchanged' if has_password else ''}}" />
+                </div>
+            </div>
+            <div class="field">
+                <div class="control">
+                    <label class="checkbox">
+                        <input type="checkbox" onclick="togglePassword()"> Show password
+                    </label>
+                </div>
+            </div>
+
+            <div class="field mt-5">
+                <div class="control">
+                    <button type="submit" class="button is-info" onclick="showLoading()">Submit</button>
+                </div>
+            </div>
+
+            <div class="field mt-5">
+                <div class="control" id="loading-message" style="display: none;">
+                    <p>Validating credentials...</p>
+                    <progress class="progress is-primary"></progress>
+                </div>
+            </div>
+
         </form>
+    </section>
 
-        {% else %}
+    <div class="mt-6"></div>
 
-        <p><b>To connect to Leader and Clerk Resources enter your Church Account credentials.</b></p>
-        <br />
-
-        {% endif %}
-    </div>
-
-    <form action="" method="post">
-        <div class="field">
-            <label for="username" class="label">Username</label>
-            <div class="control">
-                <input type="text" id="username" name="username" value="{{ username }}" class="input" />
+    <section class="has-background-grey-dark p-5">
+        <h2 class="title is-4">Settings</h2>
+        <form action="" method="post">
+            <input type="hidden" name="action" value="save_settings">
+            <div class="field">
+                <div class="control">
+                    <label class="checkbox">
+                        <input type="checkbox" id="placeholder_photos" name="placeholder_photos"
+                        {% if settings.get('placeholder_photos') %}checked{% endif %}>
+                        Use placeholder photos for missionaries without a photo
+                    </label>
+                </div>
             </div>
-        </div>
 
-        <div class="field">
-            <label for="password" class="label">Password</label>
-            <div class="control">
-                <input type="password" id="password" name="password" value="{{ password }}" class="input"
-                    placeholder="{{ 'Unchanged' if has_password else ''}}" />
+            <div class="field mt-5">
+                <div class="control">
+                    <button type="submit" class="button is-info">Save Settings</button>
+                </div>
             </div>
-        </div>
-        <div class="field">
-            <div class="control">
-                <label class="checkbox">
-                    <input type="checkbox" onclick="togglePassword()"> Show password
-                </label>
-            </div>
-        </div>
 
-        <div class="field mt-5">
-            <div class="control">
-                <button type="submit" class="button is-info" onclick="showLoading()">Submit</button>
-            </div>
-        </div>
-
-        <div class="field mt-5">
-            <div class="control" id="loading-message" style="display: none;">
-            <p>Validating credentials...</p>
-            <progress class="progress is-primary"></progress>
-            </div>
-        </div>
-
-    </form>
+        </form>
+    </section>
 </div>
 
 <script>

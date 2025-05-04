@@ -37,6 +37,7 @@ async def slides(request: Request) -> Response:
 
     offset = int(request.query_params.get("offset", 0))
     is_names = request.query_params.get("names", "false").lower() == "true"
+    placeholder_photos = db.get("settings", {}).get("placeholder_photos", False)
     if is_names:
         limit = NAMES_PAGE_SIZE
         template = "slide-names.html"
@@ -48,11 +49,11 @@ async def slides(request: Request) -> Response:
         template = "slide-photos.html"
 
         def filter_(m: Missionary) -> bool:
-            return bool(m.image_path)
+            return bool(m.image_path or placeholder_photos)
 
     missionaries, next_offset = missionaries_repo.list_range(offset, limit, filter_)
 
-    if next_offset == 0:
+    if next_offset == 0 and not placeholder_photos:
         is_names = not is_names
 
     next_url = (

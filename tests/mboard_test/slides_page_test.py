@@ -45,7 +45,7 @@ def test_photos_and_names_pagination(client: httpx.Client, db: Database) -> None
     db["missionaries"] = missionaries
 
     # Skip the photo refresh so that image_path is not cleared.
-    with mock.patch("mboard.missionaries.Missionaries._photo_only_refresh"):
+    with mock.patch("mboard.missionaries.Missionaries._photo_refresh"):
         response = client.get("/")
 
         response = client.get("/")
