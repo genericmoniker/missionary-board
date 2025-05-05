@@ -52,15 +52,19 @@ async def slides(request: Request) -> Response:
             return bool(m.image_path or placeholder_photos)
 
     missionaries, next_offset = missionaries_repo.list_range(offset, limit, filter_)
+    if not missionaries:
+        template = "slide-empty.html"
+        next_url = request.url_for("slides")
+    else:
+        if next_offset == 0 and not placeholder_photos:
+            is_names = not is_names
 
-    if next_offset == 0 and not placeholder_photos:
-        is_names = not is_names
+        next_url = (
+            f"{request.url_for('slides')}"
+            f"?offset={next_offset}"
+            f"&names={str(is_names).lower()}"
+        )
 
-    next_url = (
-        f"{request.url_for('slides')}"
-        f"?offset={next_offset}"
-        f"&names={str(is_names).lower()}"
-    )
     context = {
         "request": request,
         "next_url": next_url,

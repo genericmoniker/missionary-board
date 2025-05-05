@@ -1,9 +1,9 @@
 # Missionary Board
 
-A digital missionary board/slideshow that integrates with Google Photos.
+A digital missionary board/slideshow.
 
-It can be run on an Orange Pi/Raspberry Pi and connected to a television screen
-to create a kiosk.
+It can be run on a Raspberry Pi (or similar) and connected to a television
+screen to create a kiosk.
 
 ![Example](./README-1.png)
 
@@ -134,3 +134,8 @@ CSS styling uses the [Bulma](https://bulma.io) framework. The compiled
 1. Install [sass](https://sass-lang.com/install) and make sure it is in your
    PATH (e.g. `~/.local/bin` on Linux).
 2. Run `pdm run styles`
+
+To preview the board as if on a TV, use the developer tools to simulate a device
+at 1920x1080 (Full HD) or 3840x2160 (4k).
+
+You can skip to the next page of the slide show by pressing the space bar.

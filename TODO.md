@@ -10,11 +10,12 @@
 - [x] also serving page - show it at the right time, large range of missionaries
 - [x] split code for normal slide vs. not pictured?
 - [x] option to show placeholder images or name pages
-- [ ] complete switch to using flash
+- [x] way to skip quickly through pages (arrow keys? button?)
+- [x] complete switch to using flash
 - [ ] test first run behavior - data fetched, photos determined, etc.
 - [ ] settings button/link on the names slide
 - [ ] decrease LCR refresh frequency
 - [ ] WARNING:  fake_useragent -> Error occurred during getting browser(s): random, but was suppressed with fallback
-- [ ] way to skip quickly through pages (arrow keys? button?)
 - [ ] auto-mode for @pytest.mark.asyncio
 - [ ] reach out to lcr_session author
+- [ ] fix README.md for new implementation

@@ -1,0 +1,29 @@
+{% extends 'slide-base.html' %}
+
+{% block styles %}
+<link href="{{ url_for('static', path='/styles.css') }}" rel="stylesheet">
+{% endblock %}
+
+{% block content %}
+<section class="hero is-primary">
+    <div class="hero-body">
+        <p class="title">
+            Loading...
+        </p>
+        <p class="subtitle">
+            Looking for missionaries to display.
+        </p>
+        <p>
+            <progress class="progress is-info" max="100"></progress>
+        </p>
+        <p class="mt-5">
+            <a href="{{ url_for('setup') }}">
+                <img src="{{ url_for('static', path='/cog.svg') }}"
+                    style="width: 20px; height: 20px;filter: invert(80%);vertical-align: middle;"
+                    alt="setup" title="{% if refresh_error %}{{refresh_error}}{% endif %}">
+                Setup
+            </a>
+        </p>
+    </div>
+</section>
+{% endblock %}
