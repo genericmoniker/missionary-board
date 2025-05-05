@@ -22,6 +22,13 @@
     window.onbeforeunload = function (e) {
         document.getElementById('body').className = 'fadeout';
     }
+
+    document.addEventListener('keydown', function (event) {
+        // Jump immediately to the next slide when space is pressed.
+        if (event.key === ' ') {
+            window.location.href = "{{ next_url | safe }}";
+        }
+    });
 </script>
 
 </html>
