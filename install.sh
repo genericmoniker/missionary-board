@@ -18,4 +18,5 @@ systemctl --user enable mboard-update.timer
 systemctl --user restart mboard-update.timer
 
 # Install the autostart file to run the browser
+mkdir -p ~/.config/autostart
 cp ./system/mboard.desktop ~/.config/autostart/
