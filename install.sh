@@ -19,8 +19,8 @@ systemctl --user restart mboard.service
 systemctl --user enable mboard-update.timer
 systemctl --user restart mboard-update.timer
 
-# Install the autostart file to run the browser
+# Install the desktop files to run the browser and unclutter on startup.
 mkdir -p ~/.config/autostart
-cp ./system/mboard.desktop ~/.config/autostart/
+cp ./system/*.desktop ~/.config/autostart/
 
 echo "OK"

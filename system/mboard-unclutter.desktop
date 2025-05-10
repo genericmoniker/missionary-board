@@ -1,0 +1,10 @@
+# Copy to ~/.config/autostart/
+
+[Desktop Entry]
+Name=Unclutter
+Type=Application
+Exec=unclutter
+Hidden=false
+NoDisplay=false
+X-GNOME-Autostart-enabled=true
+Comment=Hide mouse cursor when idle

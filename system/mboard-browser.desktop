@@ -1,10 +1,10 @@
 # Copy to ~/.config/autostart/
 
 [Desktop Entry]
+Name=Firefox
 Type=Application
 Exec=firefox -kiosk -private-window http://localhost:8000
 Hidden=false
 NoDisplay=false
 X-GNOME-Autostart-enabled=true
-Name=Firefox
 Comment=Firefox in kiosk mode
