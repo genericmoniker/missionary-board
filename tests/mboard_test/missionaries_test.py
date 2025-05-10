@@ -283,6 +283,42 @@ def test_merge_couple(
     assert result[0].id == expected_id
 
 
+def test_merge_couple_with_nearly_identical_dates_serving(
+    tmp_path: Path, db: Database
+) -> None:
+    """Couples are merged if dates serving are within about a month."""
+    missionaries = Missionaries(db, tmp_path, FakeLcrSession())
+
+    missionaries_data = [
+        Missionary(
+            dates_serving="Mar 2025 - Sep 2026",
+            id=0,
+            name="Elder A Ng",
+            sort_name="Ng, A",
+            gender="MALE",
+            senior=True,
+            mission="Mission",
+            home_unit="Unit",
+            image_path="0.jpg",
+        ),
+        Missionary(
+            dates_serving="Feb 2025 - Sep 2026",
+            id=1,
+            name="Sister B Ng",
+            sort_name="Ng, B",
+            gender="FEMALE",
+            senior=True,
+            mission="Mission",
+            home_unit="Unit",
+            image_path="1.jpg",
+        ),
+    ]
+
+    result = missionaries._merge_couple_missionaries(missionaries_data)
+    assert len(result) == 1
+    assert result[0].dates_serving == "Mar 2025 - Sep 2026"
+
+
 @pytest.mark.parametrize(
     "missionaries_data",
     [

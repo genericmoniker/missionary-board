@@ -247,7 +247,10 @@ class Missionaries:
                         and m.gender != missionary.gender
                         and m.mission == missionary.mission
                         and m.home_unit == missionary.home_unit
-                        and m.dates_serving == missionary.dates_serving
+                        and self._last_name(m.name) == self._last_name(m.name)
+                        and self._dates_serving_nearly_equal(
+                            m.dates_serving, missionary.dates_serving
+                        )
                     ),
                     None,
                 )
@@ -270,6 +273,15 @@ class Missionaries:
         return result_missionaries
 
     @staticmethod
+    def _last_name(name: str) -> str:
+        """Get the last name from a display name.
+
+        Elder John Smith -> Smith
+        """
+        split_name = name.split()
+        return split_name[-1] if split_name else ""
+
+    @staticmethod
     def _omit_last_name(name: str) -> str:
         """Omit the last name from a display name.
 
@@ -277,6 +289,35 @@ class Missionaries:
         """
         split_name = name.split()
         return " ".join(split_name[:-1])
+
+    @staticmethod
+    def _dates_serving_nearly_equal(ds1: str, ds2: str) -> bool:
+        """Check if two dates serving strings are nearly equal.
+
+        This is used to check if two missionaries are serving in the same time frame.
+        There have been cases where the dates are not exactly the same, but they are
+        serving in the same time frame. For example, "Aug 2023 - Dec 2024" and
+        "Aug 2023 - Jan 2025" are considered nearly equal.
+        """
+        if ds1 == ds2:
+            return True
+        start1_str, end1_str = ds1.split(" - ")
+        start2_str, end2_str = ds2.split(" - ")
+        start1 = datetime.strptime(start1_str, "%b %Y")  # noqa: DTZ007
+        start2 = datetime.strptime(start2_str, "%b %Y")  # noqa: DTZ007
+        end1 = datetime.strptime(end1_str, "%b %Y")  # noqa: DTZ007
+        end2 = datetime.strptime(end2_str, "%b %Y")  # noqa: DTZ007
+
+        about_a_month = timedelta(days=32)
+
+        # Check if the start dates are the same and the end dates are within a month
+        # of each other.
+        if start1 == start2 and abs(end1 - end2) <= about_a_month:
+            return True
+
+        # Check if the end dates are the same and the start dates are within a month
+        # of each other.
+        return end1 == end2 and abs(start1 - start2) <= about_a_month
 
     def _find_photo(self, missionary_id: int) -> str:
         """Find a photo for the missionary with the given id.
