@@ -18,3 +18,6 @@ systemctl restart mboard-reboot.timer
 # Journal configuration (persistent logs).
 mkdir -p /etc/systemd/journald.conf.d
 cp ./system/mboard-journald.conf /etc/systemd/journald.conf.d/
+
+set +x
+echo "OK"

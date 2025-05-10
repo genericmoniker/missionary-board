@@ -23,4 +23,5 @@ systemctl --user restart mboard-update.timer
 mkdir -p ~/.config/autostart
 cp ./system/*.desktop ~/.config/autostart/
 
+set +x
 echo "OK"
