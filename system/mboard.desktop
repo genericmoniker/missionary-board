@@ -1,4 +1,4 @@
-# Copy to /home/orangepi/.config/autostart/
+# Copy to ~/.config/autostart/
 
 [Desktop Entry]
 Type=Application

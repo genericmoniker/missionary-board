@@ -12,6 +12,7 @@
 - [x] option to show placeholder images or name pages
 - [x] way to skip quickly through pages (arrow keys? button?)
 - [x] complete switch to using flash
+- [x] add sysinstall.sh to do unclutter, system restart, journal log persistence
 - [ ] test first run behavior - data fetched, photos determined, etc.
 - [ ] settings button/link on the names slide
 - [ ] decrease LCR refresh frequency
@@ -19,3 +20,4 @@
 - [ ] auto-mode for @pytest.mark.asyncio
 - [ ] reach out to lcr_session author
 - [ ] fix README.md for new implementation
+- [ ] 404 handler redirects back to root URL

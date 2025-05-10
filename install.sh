@@ -3,6 +3,8 @@
 set -x
 set -euo pipefail
 
+command -v uv >/dev/null 2>&1 || { curl -LsSf https://astral.sh/uv/install.sh | sh; }
+
 git config pull.ff only
 
 uv sync
@@ -20,3 +22,5 @@ systemctl --user restart mboard-update.timer
 # Install the autostart file to run the browser
 mkdir -p ~/.config/autostart
 cp ./system/mboard.desktop ~/.config/autostart/
+
+echo "OK"

@@ -3,8 +3,8 @@ Description=Missionary Board Server
 
 [Service]
 Restart=always
-WorkingDirectory=/home/orangepi/missionary-board
-ExecStart=/home/orangepi/.local/bin/uv run uvicorn --app-dir ./src --log-config ./conf/uvicorn.logger.json mboard.main:app
+WorkingDirectory=%h/missionary-board
+ExecStart=%h/.local/bin/uv run uvicorn --app-dir ./src --log-config ./conf/uvicorn.logger.json mboard.main:app
 
 [Install]
 WantedBy=default.target
