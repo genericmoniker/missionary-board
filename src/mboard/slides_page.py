@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 
 
 PHOTOS_PAGE_SIZE = 6
-NAMES_PAGE_SIZE = 75
+NAMES_PAGE_SIZE = 80
 
 
 async def slides(request: Request) -> Response:
