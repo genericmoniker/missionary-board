@@ -54,6 +54,13 @@
             <p class="help is-danger">{{ password_error }}</p>
             {% endif %}
         </div>
+        <div class="field">
+            <div class="control">
+                <label class="checkbox">
+                    <input type="checkbox" onclick="togglePassword()"> Show password
+                </label>
+            </div>
+        </div>
 
         <br />
 
@@ -95,5 +102,16 @@
 
     </form>
 </div>
+
+<script>
+    function togglePassword() {
+        var passwordField = document.getElementById("password");
+        if (passwordField.type === "password") {
+            passwordField.type = "text";
+        } else {
+            passwordField.type = "password";
+        }
+    }
+</script>
 
 {% endblock %}

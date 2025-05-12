@@ -16,7 +16,7 @@ from mboard.database import Database
 from mboard.login_page import login
 from mboard.logout_page import logout
 from mboard.paths import PHOTOS_DIR, ROOT_DIR
-from mboard.setup_page import authorize, setup
+from mboard.setup_page import setup
 from mboard.slides_page import slides
 
 _logger = getLogger(__name__)
@@ -52,12 +52,12 @@ def create_app() -> Starlette:
         Route("/login", login, methods=["GET", "POST"]),
         Route("/logout", logout, methods=["POST"]),
         Route("/setup", setup, methods=["GET", "POST"]),
-        Route("/authorize", authorize),
         Route("/", slides),
     ]
 
     starlette = Starlette(debug=True, routes=routes, middleware=middleware)
     starlette.state.db = db
+    starlette.state.missionaries = None
     return starlette
 
 

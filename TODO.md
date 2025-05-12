@@ -1,0 +1,25 @@
+# Missionary Board To Do
+
+- [x] rewrite/fix unit tests
+- [x] ruff errors
+- [x] missionary couples
+- [x] photo finding
+- [x] log count with and without photos
+- [x] couple not merged (different start dates...)
+- [x] show only missionaries with photos (filter as late as possible)
+- [x] also serving page - show it at the right time, large range of missionaries
+- [x] split code for normal slide vs. not pictured?
+- [x] option to show placeholder images or name pages
+- [x] way to skip quickly through pages (arrow keys? button?)
+- [x] complete switch to using flash
+- [x] add sysinstall.sh to do unclutter, system restart, journal log persistence
+- [x] settings button/link on the names slide
+- [ ] Draper crop
+- [ ] test first run behavior - data fetched, photos determined, etc.
+- [ ] decrease LCR refresh frequency
+- [ ] WARNING:  fake_useragent -> Error occurred during getting browser(s): random, but was suppressed with fallback
+- [ ] auto-mode for @pytest.mark.asyncio
+- [ ] reach out to lcr_session author
+- [ ] fix README.md for new implementation
+- [ ] 404 handler redirects back to root URL
+- [ ] log unmatched photos for cleanup and error detection

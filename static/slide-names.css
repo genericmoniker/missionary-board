@@ -1,0 +1,15 @@
+.hero .title {
+    font-size: 5rem;
+}
+
+.hero .subtitle {
+    font-size: 3rem;
+}
+
+.list-item li {
+    font-size: 2rem;
+}
+
+.section.section {
+    padding: 48px 0;
+}

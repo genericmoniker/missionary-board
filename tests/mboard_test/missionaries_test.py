@@ -1,298 +1,428 @@
 """Tests for the missionaries module."""
 
-import string
-from collections.abc import Callable
-from dataclasses import asdict, dataclass, field
+# ruff: noqa: FBT003 SLF001 PLR2004
+import json
 from datetime import UTC, datetime
 from pathlib import Path
-from random import choices
+from typing import Any
 
 import pytest
-from mimesis import Generic
 
+from lcr_session.session import LcrSession
+from lcr_session.urls import ChurchUrl
 from mboard.database import Database
-from mboard.google_photos import GooglePhotosClient
 from mboard.missionaries import Missionaries, Missionary
 
-# ruff: noqa: N815 (Google uses camelCase for many of its API fields)
+
+class FakeLcrSession(LcrSession):
+    """A fake LCR session for testing - minimal version with just what's needed."""
+
+    def __init__(self) -> None:
+        """Initialize with minimal setup."""
+        self.missionaries_data = []
+        self.get_json_called = False
+
+    async def get_json(self, url: str | ChurchUrl, **kwargs) -> Any:  # noqa: ANN401, ARG002
+        """Mock the get_json method to return our test missionary data."""
+        self.get_json_called = True
+        return self.missionaries_data
 
 
-generic = Generic()
-
-
-def randstr() -> str:
-    return "".join(choices(string.ascii_lowercase, k=8))  # noqa: S311
-
-
-class FakeGooglePhotosClient(GooglePhotosClient):
-    """A fake Google Photos client for testing purposes."""
-
-    def __init__(
-        self,
-        token: dict,
-        update_token: Callable,
-        client_id: str = "",
-        client_secret: str = "",
-    ) -> None:
-        super().__init__(token, update_token, client_id, client_secret)
-        self.albums = []
-        self.media_items = {}
-        self.get_albums_called = False
-        self.downloads = []
-
-    async def get_albums(self) -> list[dict]:
-        """Return a list of fake Google Photos albums."""
-        self.get_albums_called = True
-        return [asdict(album) for album in self.albums]
-
-    async def get_media_items(self, album_id: str) -> list[dict]:
-        """Return a list of fake Google Photos media items."""
-        return [asdict(mi) for mi in self.media_items[album_id]]
-
-    async def download(self, media_item_base_url: str) -> bytes:
-        """Return fake image data."""
-        self.downloads.append(media_item_base_url)
-        return b"Image data for " + media_item_base_url.encode("utf-8")
-
-
-@dataclass
-class Album:
-    """A fake Google Photos album for testing purposes."""
-
-    id: str = field(default_factory=randstr)
-    title: str = field(default="Missionary Board")
-    productUrl: str = field(default_factory=generic.internet.url)
-    isWriteable: bool = field(default=True)
-    mediaItemsCount: str = field(default=str(0))
-    coverPhotoBaseUrl: str = field(default_factory=generic.internet.url)
-    coverPhotoMediaItemId: str = field(default_factory=randstr)
-
-
-def media_metadata() -> dict:
-    return {
-        "creationTime": "2021-01-01T00:00:00Z",
-        "width": "800",
-        "height": "600",
-    }
-
-
-@dataclass
-class MediaItem:
-    """A fake Google Photos media item for testing purposes."""
-
-    id: str = field(default_factory=randstr)
-    description: str = field(default_factory=generic.text.text)
-    productUrl: str = field(default_factory=generic.internet.url)
-    baseUrl: str = field(default_factory=generic.internet.url)
-    mimeType: str = field(default="image/jpeg")
-    mediaMetadata: dict = field(default_factory=media_metadata)
-    filename: str = field(default_factory=generic.file.file_name)
+@pytest.fixture
+def lcr_json_data() -> list[dict]:
+    """Load the test missionaries data from the JSON file."""
+    json_path = Path(__file__).parent / "lcr.json"
+    with json_path.open() as f:
+        return json.load(f)
 
 
 @pytest.mark.asyncio
 async def test_refresh_skipped_if_not_needed(tmp_path: Path, db: Database) -> None:
     db["last_refresh"] = datetime.now(tz=UTC)
-    client = FakeGooglePhotosClient({}, lambda *_: None)
-    missionaries = Missionaries(db, tmp_path, client)
+    lcr_client = FakeLcrSession()
+    missionaries = Missionaries(db, tmp_path, lcr_client)
 
     await missionaries.refresh()
 
-    assert not client.get_albums_called
+    assert not lcr_client.get_json_called
 
 
 @pytest.mark.asyncio
-async def test_refresh_gets_new_missionary_data(tmp_path: Path, db: Database) -> None:
-    db["last_refresh"] = datetime.min.replace(tzinfo=UTC)
-    client = FakeGooglePhotosClient({}, lambda *_: None)
-    album = Album()
-    client.albums = [album]
-    media_item = MediaItem(
-        filename="abc.jpg", mediaMetadata={"width": "1", "height": "1"}
-    )
-    client.media_items = {album.id: [media_item]}
-    missionaries = Missionaries(db, tmp_path, client)
+async def test_photo_refreshed_without_data(tmp_path: Path, db: Database) -> None:
+    """Missionary photos are refreshed on each call, even if LCR data is fresh."""
+    db["last_refresh"] = datetime.now(tz=UTC)  # No full LCR refresh is needed.
+    db["missionaries"] = [
+        Missionary(
+            id=123,
+            name="Elder Robert Thompson",
+            image_path="",  # No photo path yet.
+        )
+    ]
+
+    lcr_client = FakeLcrSession()
+    missionaries = Missionaries(db, tmp_path, lcr_client)
+
+    # Simulate a photo file being present.
+    (tmp_path / "123.jpg").touch()
 
     await missionaries.refresh()
 
-    assert client.get_albums_called
-    missionaries_items, next_offset = missionaries.list_range(0, 1)
-    assert missionaries_items
-    assert next_offset == 0
-    assert (tmp_path / "abc_1x1.jpg").exists()
+    assert not lcr_client.get_json_called
+    assert db["missionaries"][0].image_path == "123.jpg"
 
 
 @pytest.mark.asyncio
-async def test_refresh_updates_missionary_data(tmp_path: Path, db: Database) -> None:
-    db["last_refresh"] = datetime.min.replace(tzinfo=UTC)
-    db["missionaries"] = [Missionary(name="Sister Jones")]
-    client = FakeGooglePhotosClient({}, lambda *_: None)
-    album = Album()
-    client.albums = [album]
-    media_item = MediaItem(description="Sister Kate Jones")
-    client.media_items = {album.id: [media_item]}
-    missionaries = Missionaries(db, tmp_path, client)
-
-    await missionaries.refresh()
-
-    assert db["missionaries"][0].name == "Sister Kate Jones"
-
-
-@pytest.mark.asyncio
-async def test_refresh_does_not_download_already_cached_image(
-    tmp_path: Path,
-    db: Database,
+async def test_refresh_gets_new_missionary_data(
+    tmp_path: Path, db: Database, lcr_json_data: list[dict]
 ) -> None:
     db["last_refresh"] = datetime.min.replace(tzinfo=UTC)
-    client = FakeGooglePhotosClient({}, lambda *_: None)
-    album = Album()
-    client.albums = [album]
-    media_item = MediaItem(
-        filename="cached.jpg",
-        mediaMetadata={"width": "5", "height": "9"},
+    lcr_client = FakeLcrSession()
+    lcr_client.missionaries_data = lcr_json_data
+    missionaries = Missionaries(db, tmp_path, lcr_client)
+
+    await missionaries.refresh()
+
+    assert lcr_client.get_json_called
+    missionaries_items, next_offset = missionaries.list_range(0, 4)
+    assert missionaries_items
+    assert len(missionaries_items) == 3  # 2 young missionaries and 1 senior couple
+    assert next_offset == 0
+
+
+@pytest.mark.asyncio
+async def test_refresh_updates_missionary_data(
+    tmp_path: Path, db: Database, lcr_json_data: list[dict]
+) -> None:
+    db["last_refresh"] = datetime.min.replace(tzinfo=UTC)
+    db["missionaries"] = [Missionary(name="Sister Jones", sort_name="Jones, Sister")]
+    lcr_client = FakeLcrSession()
+    lcr_client.missionaries_data = lcr_json_data
+    missionaries = Missionaries(db, tmp_path, lcr_client)
+
+    await missionaries.refresh()
+
+    assert len(db["missionaries"]) == 3  # 2 young missionaries and 1 senior couple
+    assert (
+        "Wilson" in db["missionaries"][0].name
+        or "Johnson" in db["missionaries"][0].name
+        or "Thompson" in db["missionaries"][0].name
     )
-    client.media_items = {album.id: [media_item]}
-    (tmp_path / "cached_5x9.jpg").write_bytes(b"Image data")
-    missionaries = Missionaries(db, tmp_path, client)
-
-    await missionaries.refresh()
-
-    assert media_item.baseUrl not in client.downloads
 
 
 @pytest.mark.asyncio
-async def test_refresh_downloads_resized_image(tmp_path: Path, db: Database) -> None:
+async def test_missionaries_sorted_by_name(
+    tmp_path: Path, db: Database, lcr_json_data: list[dict]
+) -> None:
     db["last_refresh"] = datetime.min.replace(tzinfo=UTC)
-    client = FakeGooglePhotosClient({}, lambda *_: None)
-    album = Album()
-    client.albums = [album]
-    media_item = MediaItem(
-        filename="cached.jpg", mediaMetadata={"width": "5", "height": "9"}
-    )
-    client.media_items = {album.id: [media_item]}
-    (tmp_path / "cached_8x10.jpg").write_bytes(b"Image data")
-    missionaries = Missionaries(db, tmp_path, client)
-
-    await missionaries.refresh()
-
-    assert media_item.baseUrl in client.downloads
-
-
-@pytest.mark.asyncio
-async def test_refresh_cleans_up_old_images(tmp_path: Path, db: Database) -> None:
-    db["last_refresh"] = datetime.min.replace(tzinfo=UTC)
-    client = FakeGooglePhotosClient({}, lambda *_: None)
-    album = Album()
-    client.albums = [album]
-    media_item = MediaItem()
-    client.media_items = {album.id: [media_item]}
-    (tmp_path / "old.jpg").write_bytes(b"Image data")
-    missionaries = Missionaries(db, tmp_path, client)
-
-    await missionaries.refresh()
-
-    assert not (tmp_path / "old.jpg").exists()
-
-
-@pytest.mark.asyncio
-async def test_missionaries_sorted_by_last_name(tmp_path: Path, db: Database) -> None:
-    db["last_refresh"] = datetime.min.replace(tzinfo=UTC)
-    client = FakeGooglePhotosClient({}, lambda *_: None)
-    album = Album()
-    client.albums = [album]
-    client.media_items = {
-        album.id: [
-            MediaItem(description="Elder Victor Bravo"),
-            MediaItem(description="Sister Zoe Anderson"),
-            MediaItem(description="Sister Amanda Evans-Clinton"),
-            MediaItem(description="Elder Ben Smith"),
-            MediaItem(description="Elder Adam Smith"),
-            MediaItem(description="Nephi"),
-            MediaItem(description="Elder Charlie & Sister Brava Delta"),
-            MediaItem(description=""),
-        ]
-    }
-    missionaries = Missionaries(db, tmp_path, client)
+    lcr_client = FakeLcrSession()
+    lcr_client.missionaries_data = lcr_json_data
+    missionaries = Missionaries(db, tmp_path, lcr_client)
 
     await missionaries.refresh()
     listed_range, _ = missionaries.list_range(0, 10)
 
-    assert listed_range[0].name == ""
-    assert listed_range[1].name == "Sister Zoe Anderson"
-    assert listed_range[2].name == "Elder Victor Bravo"
-    assert listed_range[3].name == "Elder Charlie & Sister Brava Delta"
-    assert listed_range[4].name == "Sister Amanda Evans-Clinton"
-    assert listed_range[5].name == "Nephi"
-    assert listed_range[6].name == "Elder Adam Smith"
-    assert listed_range[7].name == "Elder Ben Smith"
+    assert listed_range[0].sort_name == "Johnson, Emily"
+    assert listed_range[1].sort_name == "Thompson, Robert"
+    assert listed_range[2].sort_name == "Wilson, Thomas"
+
+
+def test_parse_lcr_data(
+    tmp_path: Path, db: Database, lcr_json_data: list[dict]
+) -> None:
+    missionaries = Missionaries(db, tmp_path, FakeLcrSession())
+
+    data = lcr_json_data[0]  # Thomas Wilson
+    missionary = missionaries._create_missionary(data)
+    assert missionary.id == 87654321098
+    assert missionary.name == "Elder Thomas Wilson"
+    assert missionary.sort_name == "Wilson, Thomas"
+    assert missionary.gender == "MALE"
+    assert missionary.senior is False
+    assert missionary.mission == "Guatemala Guatemala City East"
+    assert missionary.home_unit == "Sego Lily Ward"
+
+    data = lcr_json_data[1]  # Emily Johnson
+    missionary = missionaries._create_missionary(data)
+    assert missionary.id == 76543210987
+    assert missionary.name == "Sister Emily Johnson"
+    assert missionary.sort_name == "Johnson, Emily"
+    assert missionary.gender == "FEMALE"
+    assert missionary.senior is False
+    assert missionary.mission == "Brazil Rio de Janeiro South"
+    assert missionary.home_unit == "Sego Lily Ward"
+
+    data = lcr_json_data[2]  # Robert Thompson
+    missionary = missionaries._create_missionary(data)
+    assert missionary.id == 12345678910
+    assert missionary.name == "Elder Robert Thompson"
+    assert missionary.sort_name == "Thompson, Robert"
+    assert missionary.gender == "MALE"
+    assert missionary.senior is True
+    assert missionary.mission == "Philippines Cebu"
+    assert missionary.home_unit == "Maple Grove Ward"
 
 
 @pytest.mark.parametrize(
-    "media_item_description",
+    ("filename", "expected_path"),
     [
-        # Whitespace variations...
-        """
-        Sister Jones
-        1st Ward
-        China Hong Kong Mission
-        March 2023 - September 2024
-        """,
-        """    Sister Jones
-        1st Ward
-        China Hong Kong Mission
-        March 2023 - September 2024
-        """,
-        "Sister Jones\n1st Ward\nChina Hong Kong Mission\nMarch 2023 - September 2024",
+        ("12345678910.jpg", "12345678910.jpg"),
+        ("12345678910.jpeg", "12345678910.jpeg"),
+        ("12345678910-robert-thompson.jpg", "12345678910-robert-thompson.jpg"),
+        ("123.jpg", ""),
+        ("", ""),
     ],
 )
-def test_missionary_data_parsed_from_media_item(
-    tmp_path: Path, media_item_description: str, db: Database
+def test_photo_finding(
+    filename: str,
+    expected_path: str,
+    tmp_path: Path,
+    db: Database,
+    lcr_json_data: list[dict],
 ) -> None:
-    client = FakeGooglePhotosClient({}, lambda *_: None)
-    missionaries = Missionaries(db, tmp_path, client)
+    missionaries = Missionaries(db, tmp_path, FakeLcrSession())
 
-    media_item = MediaItem(
-        id="123",
-        description=media_item_description,
-        productUrl="https://photos.google.com/lr/photo/123",
-        baseUrl="https://lh3.googleusercontent.com/abc",
-        mimeType="image/jpeg",
-        mediaMetadata={"width": "5", "height": "9"},
-        filename="abc.jpg",
-    )
-    missionary = missionaries._parse_media_item(asdict(media_item))  # noqa: SLF001
+    if filename:
+        (tmp_path / filename).touch()
 
-    assert missionary.image_path == "abc_5x9.jpg"
-    assert missionary.image_base_url == "https://lh3.googleusercontent.com/abc"
-    assert missionary.name == "Sister Jones"
-    assert missionary.details == [
-        "1st Ward",
-        "China Hong Kong Mission",
-        "March 2023 - September 2024",
+    data = lcr_json_data[2]  # Robert Thompson
+    missionary = missionaries._create_missionary(data)
+
+    assert missionary.image_path == expected_path
+
+
+def test_parse_missing_senior_value(
+    tmp_path: Path, db: Database, lcr_json_data: list[dict]
+) -> None:
+    """If seniorMissionary value is missing, fall back to an age check."""
+    missionaries = Missionaries(db, tmp_path, FakeLcrSession())
+
+    data = lcr_json_data[1]  # young Emily Johnson
+    data["seniorMissionary"] = None
+    missionary = missionaries._create_missionary(data)
+    assert missionary.senior is False
+
+    data = lcr_json_data[2]  # senior Robert Thompson
+    data["seniorMissionary"] = None
+    missionary = missionaries._create_missionary(data)
+    assert missionary.senior is True
+
+
+@pytest.mark.parametrize(
+    ("missionaries_data", "expected_names", "expected_id"),
+    [
+        # Male missionary's sort name is first
+        (
+            [
+                Missionary(
+                    id=0,
+                    name="Elder A Ng",
+                    sort_name="Ng, A",
+                    gender="MALE",
+                    senior=True,
+                    mission="Mission",
+                    home_unit="Unit",
+                    image_path="0.jpg",
+                ),
+                Missionary(
+                    id=1,
+                    name="Sister B Ng",
+                    sort_name="Ng, B",
+                    gender="FEMALE",
+                    senior=True,
+                    mission="Mission",
+                    home_unit="Unit",
+                    image_path="1.jpg",
+                ),
+            ],
+            "Elder A & Sister B Ng",
+            0,
+        ),
+        # Male missionary's sort name is second
+        (
+            [
+                Missionary(
+                    id=0,
+                    name="Sister A Ng",
+                    sort_name="Ng, A",
+                    gender="FEMALE",
+                    senior=True,
+                    mission="Mission",
+                    home_unit="Unit",
+                    image_path="0.jpg",
+                ),
+                Missionary(
+                    id=1,
+                    name="Elder B Ng",
+                    sort_name="Ng, B",
+                    gender="MALE",
+                    senior=True,
+                    mission="Mission",
+                    home_unit="Unit",
+                    image_path="0.jpg",
+                ),
+            ],
+            "Elder B & Sister A Ng",
+            1,
+        ),
+    ],
+)
+def test_merge_couple(
+    missionaries_data: list[Missionary],
+    expected_names: str,
+    expected_id: int,
+    tmp_path: Path,
+    db: Database,
+) -> None:
+    """Couples are merged into one entry, with the Elder's name first."""
+    missionaries = Missionaries(db, tmp_path, FakeLcrSession())
+
+    result = missionaries._merge_couple_missionaries(missionaries_data)
+
+    assert len(result) == 1
+    assert result[0].name == expected_names
+    assert result[0].id == expected_id
+
+
+def test_merge_couple_with_nearly_identical_dates_serving(
+    tmp_path: Path, db: Database
+) -> None:
+    """Couples are merged if dates serving are within about a month."""
+    missionaries = Missionaries(db, tmp_path, FakeLcrSession())
+
+    missionaries_data = [
+        Missionary(
+            dates_serving="Mar 2025 - Sep 2026",
+            id=0,
+            name="Elder A Ng",
+            sort_name="Ng, A",
+            gender="MALE",
+            senior=True,
+            mission="Mission",
+            home_unit="Unit",
+            image_path="0.jpg",
+        ),
+        Missionary(
+            dates_serving="Feb 2025 - Sep 2026",
+            id=1,
+            name="Sister B Ng",
+            sort_name="Ng, B",
+            gender="FEMALE",
+            senior=True,
+            mission="Mission",
+            home_unit="Unit",
+            image_path="1.jpg",
+        ),
     ]
 
+    result = missionaries._merge_couple_missionaries(missionaries_data)
+    assert len(result) == 1
+    assert result[0].dates_serving == "Mar 2025 - Sep 2026"
 
-@pytest.mark.parametrize("description", ["", " ", " \n "])
-def test_missionary_data_silently_empty_if_not_specified(
-    tmp_path: Path, description: str, db: Database
+
+@pytest.mark.parametrize(
+    "missionaries_data",
+    [
+        # Siblings different missions
+        [
+            Missionary(
+                id=0,
+                name="Elder A Ng",
+                sort_name="Ng, A",
+                gender="MALE",
+                senior=True,
+                mission="Mission1",
+                home_unit="Unit",
+                dates_serving="Mar 2025 - Sep 2026",
+            ),
+            Missionary(
+                id=1,
+                name="Sister B Ng",
+                sort_name="Ng, B",
+                gender="FEMALE",
+                senior=True,
+                mission="Mission2",
+                home_unit="Unit",
+                dates_serving="Mar 2025 - Sep 2026",
+            ),
+        ],
+        # Siblings different wards
+        [
+            Missionary(
+                id=0,
+                name="Elder A Ng",
+                sort_name="Ng, A",
+                gender="MALE",
+                senior=True,
+                mission="Mission",
+                home_unit="Unit1",
+                dates_serving="Mar 2025 - Mar 2027",
+            ),
+            Missionary(
+                id=1,
+                name="Sister B Ng",
+                sort_name="Ng, B",
+                gender="FEMALE",
+                senior=True,
+                mission="Mission",
+                home_unit="Unit2",
+                dates_serving="Mar 2025 - Sep 2026",
+            ),
+        ],
+        # Twins called to the same mission
+        [
+            Missionary(
+                id=0,
+                name="Sister A Ng",
+                sort_name="Ng, A",
+                gender="FEMALE",
+                senior=True,
+                mission="Mission",
+                home_unit="Unit",
+                dates_serving="Mar 2025 - Sep 2026",
+            ),
+            Missionary(
+                id=1,
+                name="Sister B Ng",
+                sort_name="Ng, B",
+                gender="FEMALE",
+                senior=True,
+                mission="Mission",
+                home_unit="Unit",
+                dates_serving="Mar 2025 - Sep 2026",
+            ),
+        ],
+        # Fraternal twins called to the same mission
+        [
+            Missionary(
+                id=0,
+                name="Elder A Ng",
+                sort_name="Ng, A",
+                gender="MALE",
+                senior=True,
+                mission="Mission",
+                home_unit="Unit",
+                dates_serving="Mar 2025 - Mar 2027",
+            ),
+            Missionary(
+                id=1,
+                name="Sister B Ng",
+                sort_name="Ng, B",
+                gender="FEMALE",
+                senior=True,
+                mission="Mission",
+                home_unit="Unit",
+                dates_serving="Mar 2025 - Sep 2026",
+            ),
+        ],
+    ],
+)
+def test_merge_non_couple_cases(
+    tmp_path: Path, db: Database, missionaries_data: list[Missionary]
 ) -> None:
-    client = FakeGooglePhotosClient({}, lambda *_: None)
-    missionaries = Missionaries(db, tmp_path, client)
-
-    media_item = MediaItem(
-        id="123",
-        description=description,
-        productUrl="https://photos.google.com/lr/photo/123",
-        baseUrl="https://lh3.googleusercontent.com/abc",
-        mimeType="image/jpeg",
-        mediaMetadata={"width": "5", "height": "9"},
-        filename="abc.jpg",
-    )
-    missionary = missionaries._parse_media_item(asdict(media_item))  # noqa: SLF001
-
-    assert missionary.image_path == "abc_5x9.jpg"
-    assert missionary.image_base_url == "https://lh3.googleusercontent.com/abc"
-    assert missionary.name == ""
-    assert missionary.details == []
+    """Missionaries are not merged if they are not a couple."""
+    missionaries = Missionaries(db, tmp_path, FakeLcrSession())
+    result = missionaries._merge_couple_missionaries(missionaries_data)
+    assert len(result) == 2
 
 
 @pytest.mark.parametrize(
@@ -307,16 +437,19 @@ def test_missionary_data_silently_empty_if_not_specified(
     ],
 )
 def test_list_returns_the_correct_next_offset(  # noqa: PLR0913
-    tmp_path: Path,
     count: int,
     offset: int,
     limit: int,
     expected_next_offset: int,
+    tmp_path: Path,
     db: Database,
 ) -> None:
-    db["missionaries"] = [Missionary(name=f"Sister Jones {i}") for i in range(count)]
-    client = FakeGooglePhotosClient({}, lambda *_: None)
-    missionaries = Missionaries(db, tmp_path, client)
+    db["missionaries"] = [
+        Missionary(name=f"Mary Jones {i}", sort_name=f"Jones, Mary {i}")
+        for i in range(count)
+    ]
+    lcr_client = FakeLcrSession()
+    missionaries = Missionaries(db, tmp_path, lcr_client)
 
     missionaries_items, next_offset = missionaries.list_range(offset, limit)
 

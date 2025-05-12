@@ -1,0 +1,24 @@
+{% extends 'slide-base.html' %}
+
+{% block styles %}
+<link href="{{ url_for('static', path='/slide-photos.css') }}" rel="stylesheet">
+{% endblock %}
+
+{% block content %}
+
+{% for missionary in missionaries %}
+<div class="card">
+    <div class="photo">
+        <img src="{{ missionary.photo_url }}">
+    </div>
+    <div class="info">
+        <p class="name">{{missionary.name}}</p>
+        <p>
+            <span class="detail">{{missionary.mission}}</span><br />
+            <span class="detail">{{missionary.dates_serving}}</span><br />
+            <span class="detail">{{missionary.home_unit}}</span><br />
+        </p>
+    </div>
+</div>
+{% endfor %}
+{% endblock %}

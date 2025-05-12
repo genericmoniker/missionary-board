@@ -1,9 +1,9 @@
 # Missionary Board
 
-A digital missionary board/slideshow that integrates with Google Photos.
+A digital missionary board/slideshow.
 
-It can be run on an Orange Pi/Raspberry Pi and connected to a television screen
-to create a kiosk.
+It can be run on a Raspberry Pi (or similar) and connected to a television
+screen to create a kiosk.
 
 ![Example](./README-1.png)
 
@@ -20,15 +20,12 @@ Google account and getting it authorized to read from your Google Photos.
 
 ## Device set up
 
-The process was tested on Debian Buster running on an Orange Pi 3 LTS. Except
-where noted, the steps should be run on the *Pi device*, either with an attached
-keyboard and screen or by using ssh to connect to the device over the network.
+This process was tested on Raspberry Pi OS (Debian Bookworm) running on a
+Raspberry Pi 5.
 
-Install [uv](https://docs.astral.sh/uv/#installation):
-
-```
-curl -LsSf https://astral.sh/uv/install.sh | sh
-```
+Except where noted, the steps should be run on the *Pi device*, either with an
+attached keyboard and screen or by using ssh to connect to the device over the
+network.
 
 Clone this repo:
 
@@ -36,39 +33,17 @@ Clone this repo:
 git clone https://github.com/genericmoniker/missionary-board.git
 ```
 
-Install the unclutter package for hiding the mouse cursor, and the xdotool to
-make it easier to refresh the browser from the command line.
+Run the install scripts:
 
 ```
-sudo apt-get install unclutter xdotool
+$ cd missionary-board
+$ sudo ./install-sys.sh
+$ ./install.sh
 ```
 
-Run the install script:
-
-```
-cd missionary-board
-./install.sh
-```
-
-After running the install script, the backend application runs at
-http://127.0.0.1:8000.
-
-The same run command above can be use to update the application by pulling a new
-Docker image if one is available.
-
-Finally, in my experience it is a good idea to reboot the device occasionally to
-keep things running smoothly. For example, to reboot every Wednesday at 2 AM
-run:
-
-```
-sudo crontab -e
-```
-
-And add this entry to the file:
-
-```
-0 2  * * 3 /sbin/shutdown -r
-```
+After running the install scripts, the backend application runs at
+http://127.0.0.1:8000 and a browser automatically starts in kiosk mode to
+connect to the backend at boot time.
 
 ## Board set up
 
@@ -134,3 +109,8 @@ CSS styling uses the [Bulma](https://bulma.io) framework. The compiled
 1. Install [sass](https://sass-lang.com/install) and make sure it is in your
    PATH (e.g. `~/.local/bin` on Linux).
 2. Run `pdm run styles`
+
+To preview the board as if on a TV, use the developer tools to simulate a device
+at 1920x1080 (Full HD) or 3840x2160 (4k).
+
+You can skip to the next page of the slide show by pressing the space bar.

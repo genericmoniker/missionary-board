@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Missionaries</title>
+    <link rel="icon" href="{{ url_for('static', path='favicon.ico') }}" type="image/x-icon" />
+    <link href="{{ url_for('static', path='/slide.css') }}" rel="stylesheet">
+    <meta http-equiv="refresh" content="30; url={{ next_url }}">
+    {% block styles %}{% endblock %}
+</head>
+
+<body id="body" class="fadein">
+    <section class="section">
+        <div class="container is-fluid">
+            {% block content %}{% endblock %}
+        </div>
+    </section>
+
+    <div id="setup" class="{% if refresh_error %}error{% endif %}">
+        <a href="{{ url_for('setup') }}">
+            <img src="{{ url_for('static', path='/cog.svg') }}"
+            alt="setup" title="{% if refresh_error %}{{refresh_error}}{% endif %}">
+        </a>
+    </div>
+</body>
+
+<script>
+    window.onbeforeunload = function (e) {
+        document.getElementById('body').className = 'fadeout';
+    }
+
+    document.addEventListener('keydown', function (event) {
+        // Jump immediately to the next slide when space is pressed.
+        if (event.key === ' ') {
+            window.location.href = "{{ next_url | safe }}";
+        }
+    });
+</script>
+
+</html>

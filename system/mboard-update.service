@@ -3,4 +3,4 @@ Description=Missionary Board Update Service
 
 [Service]
 Type=oneshot
-ExecStart=/home/orangepi/missionary-board/system/mboard-update.sh
+ExecStart=%h/missionary-board/system/mboard-update.sh
