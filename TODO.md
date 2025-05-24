@@ -14,7 +14,8 @@
 - [x] complete switch to using flash
 - [x] add sysinstall.sh to do unclutter, system restart, journal log persistence
 - [x] settings button/link on the names slide
-- [ ] Draper crop
+- [x] Draper crop
+- [ ] way to manually add part-time missionaries
 - [ ] test first run behavior - data fetched, photos determined, etc.
 - [ ] decrease LCR refresh frequency
 - [ ] WARNING:  fake_useragent -> Error occurred during getting browser(s): random, but was suppressed with fallback
@@ -23,3 +24,4 @@
 - [ ] fix README.md for new implementation
 - [ ] 404 handler redirects back to root URL
 - [ ] log unmatched photos for cleanup and error detection
+- [ ] make missionary id the suffix instead of the prefix to sort by name

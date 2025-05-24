@@ -157,7 +157,12 @@ class Missionaries:
         potential_photos = len(missionaries)
         without_photo = [m for m in missionaries if not m.image_path]
         for missionary in without_photo:
-            logger.info("No photo: %s (%s)", missionary.id, missionary.name)
+            logger.info(
+                "No photo: %s (%s - %s)",
+                missionary.id,
+                missionary.name,
+                missionary.mission,
+            )
         photo_percent = (
             (potential_photos - len(without_photo)) / potential_photos * 100
             if potential_photos
