@@ -465,9 +465,17 @@ async def test_include_extra_missionaries(tmp_path: Path, db: Database) -> None:
     """Test that extra missionaries are included in the list."""
     extra = [
         {
-            "id": 1,
-            "name": "Extra Missionary",
-            "sort_name": "Missionary, Extra",
+            "member": {
+                "gender": "FEMALE",
+                "birthDate": "19840515",
+            },
+            "missionaryIndividualId": 1,
+            "missionaryName": "Missionary, Extra",
+            "missionName": "FamilySearch",
+            "missionaryHomeUnitName": "1st Ward",
+            "startDate": "20240430",
+            "endDate": "20241231",
+            "seniorMissionary": True,
         }
     ]
     extra_path = tmp_path / "extra/missionaries.json"
@@ -484,4 +492,9 @@ async def test_include_extra_missionaries(tmp_path: Path, db: Database) -> None:
     result_missionaries, _ = missionaries.list_range(0, 1)
     assert len(result_missionaries) > 0
     missionary = result_missionaries[0]
-    assert missionary.name == "Extra Missionary"
+    assert missionary.name == "Sister Extra Missionary"
+    assert missionary.sort_name == "Missionary, Extra"
+    assert missionary.mission == "FamilySearch"
+    assert missionary.home_unit == "1st Ward"
+    assert missionary.senior is True
+    assert missionary.dates_serving == "Apr 2024 - Dec 2024"

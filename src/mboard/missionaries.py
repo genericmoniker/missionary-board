@@ -349,14 +349,16 @@ class Missionaries:
 
         Extra missionaries are created by loading them from
         instance/extra/missionaries.json, where each missionary is represented as a
-        dictionary with the same fields as the Missionary dataclass.
+        dictionary with the same fields as the LCR data.
         """
         extra_file = self.extra_dir / "missionaries.json"
         if extra_file.exists():
             try:
                 with extra_file.open("r", encoding="utf-8") as f:
                     extra_data = json.load(f)
-                extra_missionaries = [Missionary(**data) for data in extra_data]
+                extra_missionaries = [
+                    self._create_missionary(data) for data in extra_data
+                ]
                 logger.info("Loaded %d extra missionaries", len(extra_missionaries))
                 return extra_missionaries
             except Exception:

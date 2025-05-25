@@ -9,4 +9,4 @@
 rsync --archive --progress --exclude='*/' \
     ./instance/photos/ mboard:missionary-board/instance/photos/
 rsync --archive --progress --exclude='*/' \
-    ./instance/data/ mboard:missionary-board/instance/data/
+    ./instance/extra/ mboard:missionary-board/instance/extra/

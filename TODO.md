@@ -15,7 +15,7 @@
 - [x] add sysinstall.sh to do unclutter, system restart, journal log persistence
 - [x] settings button/link on the names slide
 - [x] Draper crop
-- [ ] way to manually add part-time missionaries
+- [x] way to manually add part-time missionaries
 - [ ] test first run behavior - data fetched, photos determined, etc.
 - [ ] decrease LCR refresh frequency
 - [ ] WARNING:  fake_useragent -> Error occurred during getting browser(s): random, but was suppressed with fallback
