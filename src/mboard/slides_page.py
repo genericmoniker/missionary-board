@@ -8,7 +8,7 @@ from starlette.responses import RedirectResponse, Response
 
 from lcr_session.session import LcrSession
 from mboard.missionaries import Missionaries, Missionary
-from mboard.paths import PHOTOS_DIR
+from mboard.paths import INSTANCE_DIR
 from mboard.templates import templates
 
 logger = logging.getLogger(__name__)
@@ -32,7 +32,7 @@ async def slides(request: Request) -> Response:
     missionaries_repo = request.app.state.missionaries
     if missionaries_repo is None:
         client = LcrSession(db["church_username"], db["church_password"])
-        missionaries_repo = Missionaries(db, PHOTOS_DIR, client)
+        missionaries_repo = Missionaries(db, INSTANCE_DIR, client)
         request.app.state.missionaries = missionaries_repo
 
     offset = int(request.query_params.get("offset", 0))

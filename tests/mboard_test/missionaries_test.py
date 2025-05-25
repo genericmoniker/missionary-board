@@ -63,7 +63,8 @@ async def test_photo_refreshed_without_data(tmp_path: Path, db: Database) -> Non
     missionaries = Missionaries(db, tmp_path, lcr_client)
 
     # Simulate a photo file being present.
-    (tmp_path / "123.jpg").touch()
+    (tmp_path / "photos").mkdir(parents=True, exist_ok=True)
+    (tmp_path / "photos/123.jpg").touch()
 
     await missionaries.refresh()
 
@@ -169,6 +170,7 @@ def test_parse_lcr_data(
         ("12345678910.jpeg", "12345678910.jpeg"),
         ("12345678910-robert-thompson.jpg", "12345678910-robert-thompson.jpg"),
         ("123.jpg", ""),
+        ("123456789101.jpg", ""),  # ID is a substring, not a match!
         ("", ""),
     ],
 )
@@ -181,8 +183,9 @@ def test_photo_finding(
 ) -> None:
     missionaries = Missionaries(db, tmp_path, FakeLcrSession())
 
+    (tmp_path / "photos").mkdir(parents=True, exist_ok=True)
     if filename:
-        (tmp_path / filename).touch()
+        (tmp_path / "photos" / filename).touch()
 
     data = lcr_json_data[2]  # Robert Thompson
     missionary = missionaries._create_missionary(data)
@@ -455,3 +458,30 @@ def test_list_returns_the_correct_next_offset(  # noqa: PLR0913
 
     assert missionaries_items if count else not missionaries_items
     assert next_offset == expected_next_offset
+
+
+@pytest.mark.asyncio
+async def test_include_extra_missionaries(tmp_path: Path, db: Database) -> None:
+    """Test that extra missionaries are included in the list."""
+    extra = [
+        {
+            "id": 1,
+            "name": "Extra Missionary",
+            "sort_name": "Missionary, Extra",
+        }
+    ]
+    extra_path = tmp_path / "extra/missionaries.json"
+    extra_path.parent.mkdir(parents=True, exist_ok=True)
+    with extra_path.open("w") as f:
+        json.dump(extra, f)
+
+    db["last_refresh"] = datetime.min.replace(tzinfo=UTC)
+    lcr_client = FakeLcrSession()
+    lcr_client.missionaries_data = []
+    missionaries = Missionaries(db, tmp_path, lcr_client)
+    await missionaries.refresh()
+
+    result_missionaries, _ = missionaries.list_range(0, 1)
+    assert len(result_missionaries) > 0
+    missionary = result_missionaries[0]
+    assert missionary.name == "Extra Missionary"

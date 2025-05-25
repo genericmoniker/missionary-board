@@ -1,5 +1,6 @@
 """Missionaries repository."""
 
+import json
 import logging
 from collections.abc import Callable
 from dataclasses import asdict, dataclass
@@ -42,10 +43,13 @@ class Missionary:
 class Missionaries:
     """Missionaries repository/cache."""
 
-    def __init__(self, db: Database, photos_dir: Path, lcr_session: LcrSession) -> None:
+    def __init__(
+        self, db: Database, instance_dir: Path, lcr_session: LcrSession
+    ) -> None:
         """Initialize the missionary repository."""
         self.db = db
-        self.photos_dir = photos_dir
+        self.photos_dir = instance_dir / "photos"
+        self.extra_dir = instance_dir / "extra"
         self.lcr_session = lcr_session
 
     @staticmethod
@@ -151,7 +155,7 @@ class Missionaries:
             self._create_missionary(missionary_data)
             for missionary_data in missionaries_data
             if self._filter(missionary_data)
-        ]
+        ] + self._extra_missionaries()
         total = len(missionaries)
         missionaries = self._merge_couple_missionaries(missionaries)
         potential_photos = len(missionaries)
@@ -333,7 +337,28 @@ class Missionaries:
         Returns the filename of the photo if found, otherwise an empty string.
         """
         try:
-            photo = next(self.photos_dir.glob(f"{missionary_id}*"))
+            photo = next(self.photos_dir.glob(f"{missionary_id}[.-]*"))
             return photo.name
         except StopIteration:
             return ""
+
+    def _extra_missionaries(self) -> list[Missionary]:
+        """Return a list of extra missionaries that are not in LCR.
+
+        This is used to add missionaries such as those who are serving part-time.
+
+        Extra missionaries are created by loading them from
+        instance/extra/missionaries.json, where each missionary is represented as a
+        dictionary with the same fields as the Missionary dataclass.
+        """
+        extra_file = self.extra_dir / "missionaries.json"
+        if extra_file.exists():
+            try:
+                with extra_file.open("r", encoding="utf-8") as f:
+                    extra_data = json.load(f)
+                extra_missionaries = [Missionary(**data) for data in extra_data]
+                logger.info("Loaded %d extra missionaries", len(extra_missionaries))
+                return extra_missionaries
+            except Exception:
+                logger.exception("Error loading extra missionaries.")
+        return []
