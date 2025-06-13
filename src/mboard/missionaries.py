@@ -349,7 +349,21 @@ class Missionaries:
 
         Extra missionaries are created by loading them from
         instance/extra/missionaries.json, where each missionary is represented as a
-        dictionary with the same fields as the LCR data.
+        dictionary with the same fields as the LCR data. Example file:
+
+        [
+            {
+                "member": {
+                    "gender": "FEMALE"
+                },
+                "missionaryIndividualId": 1,
+                "missionaryName": "Darling, Wendy",
+                "missionName": "FamilySearch",
+                "missionaryHomeUnitName": "Neverland 1st Ward",
+                "startDate": "20240430",
+                "endDate": "20241231"
+            }
+        ]
         """
         extra_file = self.extra_dir / "missionaries.json"
         if extra_file.exists():
