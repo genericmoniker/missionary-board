@@ -331,13 +331,13 @@ class Missionaries:
     def _find_photo(self, missionary_id: int) -> str:
         """Find a photo for the missionary with the given id.
 
-        The filename should start with the missionary ID and may optionally be followed
-        by anything else, such as their name, to make managing the photos easier.
+        The filename should follow the pattern:
+        `{last-name}-{missionary-id}.{file extension}`.
 
         Returns the filename of the photo if found, otherwise an empty string.
         """
         try:
-            photo = next(self.photos_dir.glob(f"{missionary_id}[.-]*"))
+            photo = next(self.photos_dir.glob(f"*-{missionary_id}.*"))
             return photo.name
         except StopIteration:
             return ""

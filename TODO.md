@@ -16,6 +16,9 @@
 - [x] settings button/link on the names slide
 - [x] Draper crop
 - [x] way to manually add part-time missionaries
+- [x] but now manual missionary has a record in LCR
+- [x] make missionary id the suffix instead of the prefix to sort by name
+- [ ] S. Jones not merged
 - [ ] test first run behavior - data fetched, photos determined, etc.
 - [ ] decrease LCR refresh frequency
 - [ ] WARNING:  fake_useragent -> Error occurred during getting browser(s): random, but was suppressed with fallback
@@ -24,4 +27,4 @@
 - [ ] fix README.md for new implementation
 - [ ] 404 handler redirects back to root URL
 - [ ] log unmatched photos for cleanup and error detection
-- [ ] make missionary id the suffix instead of the prefix to sort by name
+- [ ] hide mouse cursor (more complicated that you'd think with Wayland!)

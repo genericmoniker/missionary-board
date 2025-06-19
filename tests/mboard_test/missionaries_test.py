@@ -64,12 +64,12 @@ async def test_photo_refreshed_without_data(tmp_path: Path, db: Database) -> Non
 
     # Simulate a photo file being present.
     (tmp_path / "photos").mkdir(parents=True, exist_ok=True)
-    (tmp_path / "photos/123.jpg").touch()
+    (tmp_path / "photos/thompson-123.jpg").touch()
 
     await missionaries.refresh()
 
     assert not lcr_client.get_json_called
-    assert db["missionaries"][0].image_path == "123.jpg"
+    assert db["missionaries"][0].image_path == "thompson-123.jpg"
 
 
 @pytest.mark.asyncio
@@ -166,9 +166,8 @@ def test_parse_lcr_data(
 @pytest.mark.parametrize(
     ("filename", "expected_path"),
     [
-        ("12345678910.jpg", "12345678910.jpg"),
-        ("12345678910.jpeg", "12345678910.jpeg"),
-        ("12345678910-robert-thompson.jpg", "12345678910-robert-thompson.jpg"),
+        ("thompson-12345678910.jpg", "thompson-12345678910.jpg"),
+        ("thompson-12345678910.jpeg", "thompson-12345678910.jpeg"),
         ("123.jpg", ""),
         ("123456789101.jpg", ""),  # ID is a substring, not a match!
         ("", ""),
