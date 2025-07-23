@@ -209,6 +209,41 @@ class LcrSession:
 
         return resp.json()
 
+    async def _new_session(self) -> None:
+        await self._client.aclose()
+        self._client = httpx.AsyncClient(headers={"User-Agent": self._user_agent}, follow_redirects=True)
+        await self._load_cookies()
+
+    async def _load_cookies(self) -> None:
+        if self._cookie_jar is not None and self._cookie_jar_file is not None:
+            self._client.cookies = self._cookie_jar  # type: ignore
+            if self._cookie_jar_file.exists():
+                self._cookie_jar.load(ignore_discard=True, ignore_expires=True)
+
+    async def _save_cookies(self) -> None:
+        if self._cookie_jar is not None and self._cookie_jar_file is not None:
+            self._cookie_jar.save(ignore_discard=True, ignore_expires=True)
+
+    async def _get_token_from_cookies(self) -> None:
+        if self._token is None:
+            for cookie in self._client.cookies.jar:
+                if cookie.name == "oauth_id_token":
+                    self._token = cookie.value
+                    break
+            else:
+                raise Exception("Could not find auth token")
+
+    async def _get_user_details(self) -> None:
+        if self._user_details is None:
+            # Get details for the current user
+            user = await self._real_get_json(_AUTH_URLS["user"].render())
+            self._user_details = UserDetails(
+                unit=user["homeUnits"][0],
+                parent_unit=user["parentUnits"][0],
+                member_id=user["individualId"],
+                uuid=user["uuid"],
+            )
+
     async def _connect(self) -> None:
         if not await self.expired():
             await self._get_token_from_cookies()
@@ -279,38 +314,3 @@ class LcrSession:
         await self._get_user_details()
 
         await self._save_cookies()
-
-    async def _new_session(self) -> None:
-        await self._client.aclose()
-        self._client = httpx.AsyncClient(headers={"User-Agent": self._user_agent}, follow_redirects=True)
-        await self._load_cookies()
-
-    async def _load_cookies(self) -> None:
-        if self._cookie_jar is not None and self._cookie_jar_file is not None:
-            self._client.cookies = self._cookie_jar  # type: ignore
-            if self._cookie_jar_file.exists():
-                self._cookie_jar.load(ignore_discard=True, ignore_expires=True)
-
-    async def _save_cookies(self) -> None:
-        if self._cookie_jar is not None and self._cookie_jar_file is not None:
-            self._cookie_jar.save(ignore_discard=True, ignore_expires=True)
-
-    async def _get_token_from_cookies(self) -> None:
-        if self._token is None:
-            for cookie in self._client.cookies.jar:
-                if cookie.name == "oauth_id_token":
-                    self._token = cookie.value
-                    break
-            else:
-                raise Exception("Could not find auth token")
-
-    async def _get_user_details(self) -> None:
-        if self._user_details is None:
-            # Get details for the current user
-            user = await self._real_get_json(_AUTH_URLS["user"].render())
-            self._user_details = UserDetails(
-                unit=user["homeUnits"][0],
-                parent_unit=user["parentUnits"][0],
-                member_id=user["individualId"],
-                uuid=user["uuid"],
-            )
