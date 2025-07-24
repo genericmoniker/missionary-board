@@ -11,7 +11,7 @@ from lcr_session.session import LcrSession
 from lcr_session.urls import ChurchUrl
 from mboard.database import Database
 
-REFRESH_INTERVAL = timedelta(minutes=2)
+REFRESH_INTERVAL = timedelta(minutes=30)
 SENIOR_AGE = 40
 
 logger = logging.getLogger(__name__)

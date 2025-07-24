@@ -1,5 +1,16 @@
 # Missionary Board To Do
 
+- [x] Auth failure: https://github.com/IsaacsLab42/lcr_session/issues/48
+- [ ] S. Jones not merged
+- [ ] test first run behavior - data fetched, photos determined, etc.
+- [x] decrease LCR refresh frequency
+- [ ] WARNING:  fake_useragent -> Error occurred during getting browser(s): random, but was suppressed with fallback
+- [ ] auto-mode for @pytest.mark.asyncio
+- [ ] reach out to lcr_session author
+- [ ] fix README.md for new implementation
+- [ ] 404 handler redirects back to root URL
+- [ ] log unmatched photos for cleanup and error detection
+- [ ] hide mouse cursor (more complicated that you'd think with Wayland!)
 - [x] rewrite/fix unit tests
 - [x] ruff errors
 - [x] missionary couples
@@ -18,13 +29,3 @@
 - [x] way to manually add part-time missionaries
 - [x] but now manual missionary has a record in LCR
 - [x] make missionary id the suffix instead of the prefix to sort by name
-- [ ] S. Jones not merged
-- [ ] test first run behavior - data fetched, photos determined, etc.
-- [ ] decrease LCR refresh frequency
-- [ ] WARNING:  fake_useragent -> Error occurred during getting browser(s): random, but was suppressed with fallback
-- [ ] auto-mode for @pytest.mark.asyncio
-- [ ] reach out to lcr_session author
-- [ ] fix README.md for new implementation
-- [ ] 404 handler redirects back to root URL
-- [ ] log unmatched photos for cleanup and error detection
-- [ ] hide mouse cursor (more complicated that you'd think with Wayland!)
