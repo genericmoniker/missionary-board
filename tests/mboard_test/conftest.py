@@ -1,6 +1,7 @@
 """Pytest fixtures for the mboard package."""
 
-import httpx
+from collections.abc import Generator
+
 import pytest
 import sqlitedict
 from starlette.testclient import TestClient
@@ -15,7 +16,8 @@ def db() -> Database:
 
 
 @pytest.fixture
-def client(db: Database) -> httpx.Client:
+def client(db: Database) -> Generator[TestClient, None, None]:
     app = create_app()
     app.state.db = db
-    return TestClient(app)
+    with TestClient(app) as test_client:
+        yield test_client

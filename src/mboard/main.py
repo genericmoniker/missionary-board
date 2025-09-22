@@ -1,5 +1,7 @@
 """Missionary Board main module."""
 
+from collections.abc import AsyncGenerator
+from contextlib import asynccontextmanager
 from datetime import timedelta
 from logging import getLogger
 from secrets import token_hex
@@ -20,6 +22,32 @@ from mboard.setup_page import setup
 from mboard.slides_page import slides
 
 _logger = getLogger(__name__)
+
+
+@asynccontextmanager
+async def lifespan(app: Starlette) -> AsyncGenerator[None, None]:
+    """Handle app startup and shutdown events."""
+    _logger.info("Application starting up...")
+
+    yield  # This is where the app runs
+
+    _logger.info("Application shutting down...")
+
+    if hasattr(app.state, "missionaries") and app.state.missionaries:
+        _logger.info("Shutting down missionaries repository...")
+        try:
+            await app.state.missionaries.close()
+        except Exception:
+            _logger.exception("Error shutting down missionaries repository")
+
+    if hasattr(app.state, "db"):
+        _logger.info("Closing database connection...")
+        try:
+            app.state.db.close()
+        except OSError:
+            _logger.exception("Error closing database")
+
+    _logger.info("Application shutdown complete.")
 
 
 def create_app() -> Starlette:
@@ -55,7 +83,9 @@ def create_app() -> Starlette:
         Route("/", slides),
     ]
 
-    starlette = Starlette(debug=True, routes=routes, middleware=middleware)
+    starlette = Starlette(
+        debug=True, routes=routes, middleware=middleware, lifespan=lifespan
+    )
     starlette.state.db = db
     starlette.state.missionaries = None
     return starlette

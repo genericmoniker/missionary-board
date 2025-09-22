@@ -7,8 +7,7 @@ from dataclasses import asdict, dataclass
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
-from lcr_session.session import LcrSession
-from lcr_session.urls import ChurchUrl
+from mboard import church
 from mboard.database import Database
 
 REFRESH_INTERVAL = timedelta(minutes=30)
@@ -44,13 +43,17 @@ class Missionaries:
     """Missionaries repository/cache."""
 
     def __init__(
-        self, db: Database, instance_dir: Path, lcr_session: LcrSession
+        self, db: Database, instance_dir: Path, client: church.Session
     ) -> None:
         """Initialize the missionary repository."""
         self.db = db
         self.photos_dir = instance_dir / "photos"
         self.extra_dir = instance_dir / "extra"
-        self.lcr_session = lcr_session
+        self.client = client
+
+    async def close(self) -> None:
+        """Close any resources held by the repository."""
+        await self.client.close()
 
     @staticmethod
     def clear(db: Database) -> None:
@@ -146,10 +149,10 @@ class Missionaries:
         self.db["missionaries"] = missionaries
 
     async def _sync_missionaries(self) -> None:
-        url = ChurchUrl(
+        url = church.URL(
             "lcr", "api/orgs/full-time-missionaries?lang=eng&unitNumber={parent_unit}"
         )
-        missionaries_data = await self.lcr_session.get_json(url)
+        missionaries_data = await self.client.get_json(url)
         logger.info("LCR missionaries: %d", len(missionaries_data))
         missionaries = [
             self._create_missionary(missionary_data)

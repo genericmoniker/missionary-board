@@ -8,13 +8,12 @@ from typing import Any
 
 import pytest
 
-from lcr_session.session import LcrSession
-from lcr_session.urls import ChurchUrl
+from mboard import church
 from mboard.database import Database
 from mboard.missionaries import Missionaries, Missionary
 
 
-class FakeLcrSession(LcrSession):
+class FakeChurchSession(church.Session):
     """A fake LCR session for testing - minimal version with just what's needed."""
 
     def __init__(self) -> None:
@@ -22,7 +21,7 @@ class FakeLcrSession(LcrSession):
         self.missionaries_data = []
         self.get_json_called = False
 
-    async def get_json(self, url: str | ChurchUrl, **kwargs) -> Any:  # noqa: ANN401, ARG002
+    async def get_json(self, url: str | church.URL) -> Any:  # noqa: ANN401, ARG002
         """Mock the get_json method to return our test missionary data."""
         self.get_json_called = True
         return self.missionaries_data
@@ -39,12 +38,12 @@ def lcr_json_data() -> list[dict]:
 @pytest.mark.asyncio
 async def test_refresh_skipped_if_not_needed(tmp_path: Path, db: Database) -> None:
     db["last_refresh"] = datetime.now(tz=UTC)
-    lcr_client = FakeLcrSession()
-    missionaries = Missionaries(db, tmp_path, lcr_client)
+    client = FakeChurchSession()
+    missionaries = Missionaries(db, tmp_path, client)
 
     await missionaries.refresh()
 
-    assert not lcr_client.get_json_called
+    assert not client.get_json_called
 
 
 @pytest.mark.asyncio
@@ -59,8 +58,8 @@ async def test_photo_refreshed_without_data(tmp_path: Path, db: Database) -> Non
         )
     ]
 
-    lcr_client = FakeLcrSession()
-    missionaries = Missionaries(db, tmp_path, lcr_client)
+    client = FakeChurchSession()
+    missionaries = Missionaries(db, tmp_path, client)
 
     # Simulate a photo file being present.
     (tmp_path / "photos").mkdir(parents=True, exist_ok=True)
@@ -68,7 +67,7 @@ async def test_photo_refreshed_without_data(tmp_path: Path, db: Database) -> Non
 
     await missionaries.refresh()
 
-    assert not lcr_client.get_json_called
+    assert not client.get_json_called
     assert db["missionaries"][0].image_path == "thompson-123.jpg"
 
 
@@ -77,13 +76,13 @@ async def test_refresh_gets_new_missionary_data(
     tmp_path: Path, db: Database, lcr_json_data: list[dict]
 ) -> None:
     db["last_refresh"] = datetime.min.replace(tzinfo=UTC)
-    lcr_client = FakeLcrSession()
-    lcr_client.missionaries_data = lcr_json_data
-    missionaries = Missionaries(db, tmp_path, lcr_client)
+    client = FakeChurchSession()
+    client.missionaries_data = lcr_json_data
+    missionaries = Missionaries(db, tmp_path, client)
 
     await missionaries.refresh()
 
-    assert lcr_client.get_json_called
+    assert client.get_json_called
     missionaries_items, next_offset = missionaries.list_range(0, 4)
     assert missionaries_items
     assert len(missionaries_items) == 3  # 2 young missionaries and 1 senior couple
@@ -96,9 +95,9 @@ async def test_refresh_updates_missionary_data(
 ) -> None:
     db["last_refresh"] = datetime.min.replace(tzinfo=UTC)
     db["missionaries"] = [Missionary(name="Sister Jones", sort_name="Jones, Sister")]
-    lcr_client = FakeLcrSession()
-    lcr_client.missionaries_data = lcr_json_data
-    missionaries = Missionaries(db, tmp_path, lcr_client)
+    client = FakeChurchSession()
+    client.missionaries_data = lcr_json_data
+    missionaries = Missionaries(db, tmp_path, client)
 
     await missionaries.refresh()
 
@@ -115,9 +114,9 @@ async def test_missionaries_sorted_by_name(
     tmp_path: Path, db: Database, lcr_json_data: list[dict]
 ) -> None:
     db["last_refresh"] = datetime.min.replace(tzinfo=UTC)
-    lcr_client = FakeLcrSession()
-    lcr_client.missionaries_data = lcr_json_data
-    missionaries = Missionaries(db, tmp_path, lcr_client)
+    client = FakeChurchSession()
+    client.missionaries_data = lcr_json_data
+    missionaries = Missionaries(db, tmp_path, client)
 
     await missionaries.refresh()
     listed_range, _ = missionaries.list_range(0, 10)
@@ -130,7 +129,7 @@ async def test_missionaries_sorted_by_name(
 def test_parse_lcr_data(
     tmp_path: Path, db: Database, lcr_json_data: list[dict]
 ) -> None:
-    missionaries = Missionaries(db, tmp_path, FakeLcrSession())
+    missionaries = Missionaries(db, tmp_path, FakeChurchSession())
 
     data = lcr_json_data[0]  # Thomas Wilson
     missionary = missionaries._create_missionary(data)
@@ -180,7 +179,7 @@ def test_photo_finding(
     db: Database,
     lcr_json_data: list[dict],
 ) -> None:
-    missionaries = Missionaries(db, tmp_path, FakeLcrSession())
+    missionaries = Missionaries(db, tmp_path, FakeChurchSession())
 
     (tmp_path / "photos").mkdir(parents=True, exist_ok=True)
     if filename:
@@ -196,7 +195,7 @@ def test_parse_missing_senior_value(
     tmp_path: Path, db: Database, lcr_json_data: list[dict]
 ) -> None:
     """If seniorMissionary value is missing, fall back to an age check."""
-    missionaries = Missionaries(db, tmp_path, FakeLcrSession())
+    missionaries = Missionaries(db, tmp_path, FakeChurchSession())
 
     data = lcr_json_data[1]  # young Emily Johnson
     data["seniorMissionary"] = None
@@ -276,7 +275,7 @@ def test_merge_couple(
     db: Database,
 ) -> None:
     """Couples are merged into one entry, with the Elder's name first."""
-    missionaries = Missionaries(db, tmp_path, FakeLcrSession())
+    missionaries = Missionaries(db, tmp_path, FakeChurchSession())
 
     result = missionaries._merge_couple_missionaries(missionaries_data)
 
@@ -289,7 +288,7 @@ def test_merge_couple_with_nearly_identical_dates_serving(
     tmp_path: Path, db: Database
 ) -> None:
     """Couples are merged if dates serving are within about a month."""
-    missionaries = Missionaries(db, tmp_path, FakeLcrSession())
+    missionaries = Missionaries(db, tmp_path, FakeChurchSession())
 
     missionaries_data = [
         Missionary(
@@ -422,7 +421,7 @@ def test_merge_non_couple_cases(
     tmp_path: Path, db: Database, missionaries_data: list[Missionary]
 ) -> None:
     """Missionaries are not merged if they are not a couple."""
-    missionaries = Missionaries(db, tmp_path, FakeLcrSession())
+    missionaries = Missionaries(db, tmp_path, FakeChurchSession())
     result = missionaries._merge_couple_missionaries(missionaries_data)
     assert len(result) == 2
 
@@ -450,8 +449,8 @@ def test_list_returns_the_correct_next_offset(  # noqa: PLR0913
         Missionary(name=f"Mary Jones {i}", sort_name=f"Jones, Mary {i}")
         for i in range(count)
     ]
-    lcr_client = FakeLcrSession()
-    missionaries = Missionaries(db, tmp_path, lcr_client)
+    client = FakeChurchSession()
+    missionaries = Missionaries(db, tmp_path, client)
 
     missionaries_items, next_offset = missionaries.list_range(offset, limit)
 
@@ -483,9 +482,9 @@ async def test_include_extra_missionaries(tmp_path: Path, db: Database) -> None:
         json.dump(extra, f)
 
     db["last_refresh"] = datetime.min.replace(tzinfo=UTC)
-    lcr_client = FakeLcrSession()
-    lcr_client.missionaries_data = []
-    missionaries = Missionaries(db, tmp_path, lcr_client)
+    client = FakeChurchSession()
+    client.missionaries_data = []
+    missionaries = Missionaries(db, tmp_path, client)
     await missionaries.refresh()
 
     result_missionaries, _ = missionaries.list_range(0, 1)

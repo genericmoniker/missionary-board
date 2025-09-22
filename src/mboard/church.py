@@ -2,15 +2,17 @@
 
 This module is deliberately similar to the lcr_session module, but is intended to be an
 abstraction that can handle authentication in different ways because sometimes
-lcr_session is broken.
+lcr_session is out-of-sync with the Church's website.
+
+To switch to using lcr_session, make Session a base class and create subclasses for each
+authentication method. Then the `create` function can be modified to return an instance
+of the appropriate subclass.
 """
 
 import asyncio
 import getpass
 import logging
 import sys
-from collections.abc import AsyncIterator
-from contextlib import asynccontextmanager
 from dataclasses import asdict, dataclass
 
 import httpx
@@ -22,9 +24,11 @@ from playwright.async_api import (
     Response,
     async_playwright,
 )
-from tenacity import after_log, retry, stop_after_attempt, wait_fixed
 
 logger = logging.getLogger(__name__)
+
+
+_HEADLESS = True  # Set to False for testing/debugging the Playwright browser.
 
 
 @dataclass
@@ -74,11 +78,44 @@ class Session:
     def __init__(self, username: str, password: str) -> None:
         self._username = username
         self._password = password
-        self._client = httpx.AsyncClient(timeout=httpx.Timeout(10.0))
-        self._user = None
+        self._playwright: Playwright | None = None
+        self._browser: Browser | None = None
+        self._context: BrowserContext | None = None
+        self._page: Page | None = None
+        self._user: _User | None = None
+
+    @classmethod
+    async def create(cls, username: str, password: str) -> "Session":
+        """Asynchronously create and initialize a new instance of the Session class."""
+        self = cls(username, password)
+        context_manager = async_playwright()
+        self._playwright = await context_manager.start()
+        self._browser = await self._playwright.chromium.launch(headless=_HEADLESS)
+        self._context = await self._browser.new_context()
+        self._page = await self._context.new_page()
+        return self
+
+    async def close(self) -> None:
+        """Close the session and clean up resources."""
+        if self._page is not None:
+            await self._page.close()
+            self._page = None
+        if self._context is not None:
+            await self._context.close()
+            self._context = None
+        if self._browser is not None:
+            await self._browser.close()
+            self._browser = None
+        if self._playwright is not None:
+            await self._playwright.stop()
+            self._playwright = None
 
     async def get_json(self, url: URL | str) -> dict:
         """Get JSON data from a URL."""
+        if self._page is None:
+            msg = "Use `Session.create` to initialize the session."
+            raise RuntimeError(msg)
+
         if isinstance(url, URL):
             if self._user is None:
                 await self._login()
@@ -86,72 +123,56 @@ class Session:
                 msg = "Failed to log in and get user info."
                 raise RuntimeError(msg)
             url = url.render(**asdict(self._user))
-        headers = {"Accept": "application/json"}
-        response = await self._client.get(url, headers=headers)
-        if response.status_code == httpx.codes.UNAUTHORIZED:
+
+        response = await self._page.goto(url)
+        if response is None or response.status == httpx.codes.UNAUTHORIZED:
             await self._login()
-            response = await self._client.get(url, headers=headers)
-        response.raise_for_status()
-        return response.json()
+            response = await self._page.goto(url)
+        if response is None or response.status != httpx.codes.OK:
+            msg = f"Failed to get JSON data: {response}"
+            raise RuntimeError(msg)
+        return await response.json()
 
     async def _login(self) -> None:
-        async with (
-            async_playwright() as playwright,
-            _playwright_browser(playwright) as browser,
-            _playwright_context(browser) as context,
-        ):
-            logger.info("Logging in as %s", self._username)
+        if self._page is None:
+            msg = "Use `Session.create` to initialize the session."
+            raise RuntimeError(msg)
 
-            # URL that will redirect to the login page if not authenticated.
-            url = URL("lcr").render()
+        logger.info("Logging in as %s", self._username)
 
-            page = await context.new_page()
-            await page.goto(url)
+        # URL that will redirect to the login page if not authenticated.
+        url = URL("lcr").render()
 
-            await page.fill('input[id="username-input"]', self._username)
-            await page.keyboard.press("Enter")
+        # Handle the login interaction.
+        await self._page.goto(url)
+        await self._page.fill('input[id="username-input"]', self._username)
+        await self._page.keyboard.press("Enter")
+        await self._page.fill('input[type="password"]', self._password)
+        await self._page.keyboard.press("Enter")
+        await self._page.wait_for_url(url)
 
-            await page.fill('input[type="password"]', self._password)
-            await page.keyboard.press("Enter")
-            await page.wait_for_url(url)
-
-            # This is a bit weird. The first attempt to load the user URL fails with a
-            # 401, but a reload usually succeeds and appears to set additional cookies.
-            logger.debug("Getting user info")
-            url = URL("directory", "api/v4/user").render()
-            response = await page.goto(url)
-            count = 1
-            max_retries = 3
-            while not await _is_successful_user_response(response):
-                logger.debug("Retrying user info fetch (%d/%d)", count, max_retries)
-                if count >= max_retries:
-                    msg = f"Failed to get user info: {response}"
-                    raise RuntimeError(msg)
-                await asyncio.sleep(5)
-                response = await page.reload()
-                count += 1
-            user = await response.json()  # type: ignore
-            self._user = _User(
-                unit=user["homeUnits"][0],
-                parent_unit=user["parentUnits"][0],
-                member_id=user["individualId"],
-                uuid=user["uuid"],
-            )
-
-            # Copy cookies (and maybe an authorization header) to the httpx client.
-            self._client.cookies.clear()
-            for cookie in await context.cookies():
-                if "name" in cookie and "value" in cookie:
-                    cookie_name = cookie["name"]
-                    cookie_value = cookie["value"]
-                    self._client.cookies.set(cookie_name, cookie_value)
-                    logger.debug("Set cookie %s (%s)", cookie_name, len(cookie_value))
-
-                    # Some APIs may require an Authorization header with a bearer token.
-                    if cookie_name == "oauth_id_token":
-                        self._client.headers.update(
-                            {"Authorization": f"Bearer {cookie_value}"}
-                        )
+        # This is a bit weird. The first attempt to load the user URL fails with a
+        # 401, but a reload usually succeeds and appears to set additional cookies.
+        logger.debug("Getting user info")
+        url = URL("directory", "api/v4/user").render()
+        response = await self._page.goto(url)
+        count = 1
+        max_retries = 3
+        while not await _is_successful_user_response(response):
+            logger.debug("Retrying user info fetch (%d/%d)", count, max_retries)
+            if count >= max_retries:
+                msg = f"Failed to get user info: {response}"
+                raise RuntimeError(msg)
+            await asyncio.sleep(5)
+            response = await self._page.reload()
+            count += 1
+        user = await response.json()  # type: ignore
+        self._user = _User(
+            unit=user["homeUnits"][0],
+            parent_unit=user["parentUnits"][0],
+            member_id=user["individualId"],
+            uuid=user["uuid"],
+        )
 
 
 async def _is_successful_user_response(response: Response | None) -> bool:
@@ -162,55 +183,13 @@ async def _is_successful_user_response(response: Response | None) -> bool:
     return "homeUnits" in await response.json()
 
 
-@retry(
-    stop=stop_after_attempt(4),
-    wait=wait_fixed(2),
-    after=after_log(logger, logging.DEBUG),
-)
-async def _get_user(page: Page, url: str) -> _User:
-    """Get user info from the Church directory API."""
-    await page.wait_for_url(url)
-    response = await page.reload()
-    if response is None or response.status != httpx.codes.OK:
-        msg = f"Failed to get user info: {response}"
-        raise RuntimeError(msg)
-    user = await response.json()
-    if "uuid" not in user:
-        msg = f"Failed to get user info: {user}"
-        raise RuntimeError(msg)
-    return _User(
-        unit=user["homeUnits"][0],
-        parent_unit=user["parentUnits"][0],
-        member_id=user["individualId"],
-        uuid=user["uuid"],
-    )
-
-
-@asynccontextmanager
-async def _playwright_browser(playwright: Playwright) -> AsyncIterator[Browser]:
-    browser = await playwright.chromium.launch(headless=False)
-    try:
-        yield browser
-    finally:
-        await browser.close()
-
-
-@asynccontextmanager
-async def _playwright_context(browser: Browser) -> AsyncIterator[BrowserContext]:
-    context = await browser.new_context()
-    try:
-        yield context
-    finally:
-        await context.close()
-
-
 async def test_main() -> None:
     """Manual test entry point."""
     logging.basicConfig(stream=sys.stderr, level=logging.DEBUG)
 
     username = input("Username: ")
     password = getpass.getpass("Password: ")
-    session = Session(username, password)
+    session = await Session.create(username, password)
     url = URL(
         "lcr",
         "api/orgs/full-time-missionaries",
@@ -218,6 +197,7 @@ async def test_main() -> None:
     )
     data = await session.get_json(url)
     print(data)  # noqa: T201
+    await session.close()
 
 
 if __name__ == "__main__":
