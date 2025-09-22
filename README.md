@@ -37,8 +37,8 @@ Run the install scripts:
 
 ```
 $ cd missionary-board
-$ sudo ./install-sys.sh
 $ ./install.sh
+$ sudo ./install-sys.sh
 ```
 
 After running the install scripts, the backend application runs at

@@ -5,6 +5,9 @@
 set -x
 set -euo pipefail
 
+# Playwright
+uv run playwright install-deps chromium && uv run playwright install chromium
+
 # Install unclutter to hide the mouse cursor.
 sudo apt install -y unclutter
 
