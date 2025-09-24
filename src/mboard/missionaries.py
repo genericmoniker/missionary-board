@@ -194,12 +194,12 @@ class Missionaries:
         start = ""
         start_date_iso = missionary_data.get("startDate")
         if start_date_iso:
-            start_date = datetime.strptime(start_date_iso, "%Y%m%d").astimezone()
+            start_date = self._parse_date(start_date_iso, sort_name)
             start = start_date.strftime("%b %Y")  # "Aug 2023"
         end = ""
         end_date_iso = missionary_data.get("endDate")
         if end_date_iso:
-            end_date = datetime.strptime(end_date_iso, "%Y%m%d").astimezone()
+            end_date = self._parse_date(end_date_iso, sort_name)
             end = end_date.strftime("%b %Y")
         dates_serving = f"{start} - {end}" if start and end else ""
 
@@ -209,7 +209,7 @@ class Missionaries:
             birth_date = missionary_data.get("member", {}).get("birthDate")
             if birth_date:
                 # Birth date is in the format "YYYYMMDD"
-                birth_date = datetime.strptime(birth_date, "%Y%m%d").astimezone()
+                birth_date = self._parse_date(birth_date, sort_name)
                 age = (datetime.now(UTC) - birth_date).days // 365
                 senior = age > SENIOR_AGE
             else:
@@ -230,6 +230,14 @@ class Missionaries:
             home_unit=missionary_data.get("missionaryHomeUnitName", ""),
             image_path=image_path,
         )
+
+    def _parse_date(self, date_str: str, tag: str) -> datetime:
+        """Parse a date string in the format YYYYMMDD."""
+        try:
+            return datetime.strptime(date_str, "%Y%m%d").astimezone()
+        except ValueError:
+            logger.warning("Invalid date '%s' for '%s'. Using now.", date_str, tag)
+            return datetime.now().astimezone()
 
     def _filter(self, missionary_data: dict) -> bool:
         """Filter missionaries to include."""

@@ -124,21 +124,29 @@ class Session:
                 raise RuntimeError(msg)
             url = url.render(**asdict(self._user))
 
-        response = await self._page.goto(url)
+        response = await self._goto(url)
         if response is None or response.status == httpx.codes.UNAUTHORIZED:
             await self._login()
-            response = await self._page.goto(url)
+            response = await self._goto(url)
         if response is None or response.status != httpx.codes.OK:
             msg = f"Failed to get JSON data: {response}"
             raise RuntimeError(msg)
         return await response.json()
 
-    async def _login(self) -> None:
+    async def _goto(self, url: str) -> Response | None:
         if self._page is None:
+            msg = "Use `Session.create` to initialize the session."
+            raise RuntimeError(msg)
+        await self._page.wait_for_load_state("networkidle")
+        return await self._page.goto(url)
+
+    async def _login(self) -> None:
+        if self._page is None or self._context is None:
             msg = "Use `Session.create` to initialize the session."
             raise RuntimeError(msg)
 
         logger.info("Logging in as %s", self._username)
+        await self._context.clear_cookies()
 
         # URL that will redirect to the login page if not authenticated.
         url = URL("lcr").render()
