@@ -149,6 +149,9 @@ class Missionaries:
         self.db["missionaries"] = missionaries
 
     async def _sync_missionaries(self) -> None:
+        # disable for now
+        return
+
         url = church.URL(
             "lcr", "api/orgs/full-time-missionaries?lang=eng&unitNumber={parent_unit}"
         )
